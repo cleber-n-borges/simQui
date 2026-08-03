@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Titulação HCl vs KOH - Simulador Corrigido</title>
+    <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+    <style>
+        :root { --bg-color: #f4f6f9; --card-bg: #ffffff; --primary: #3498db; --success: #2ecc71; --text: #2c3e50; }
+        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background-color: var(--bg-color); color: var(--text); margin: 0; padding: 20px; }
+        h1 { text-align: center; color: #2c3e50; margin-bottom: 10px; }
+        p.subtitle { text-align: center; color: #7f8c8d; margin-top: -10px; margin-bottom: 30px; }
+        
+        .container { display: grid; grid-template-columns: 350px 1fr; gap: 20px; max-width: 1400px; margin: 0 auto; }
+        @media (max-width: 900px) { .container { grid-template-columns: 1fr; } }
+
+        .controls { background: var(--card-bg); padding: 25px; border-radius: 15px; box-shadow: 0 8px 15px rgba(0,0,0,0.05); display: flex; flex-direction: column; gap: 20px; height: fit-content; }
+        .control-group { background: #f8f9fa; padding: 15px; border-radius: 10px; border-left: 5px solid var(--primary); }
+        label { display: block; font-size: 0.85em; color: #666; margin-bottom: 5px; font-weight: 600; }
+        .input-row { display: flex; align-items: center; gap: 10px; }
+        input[type="number"] { width: 80px; padding: 8px; border: 1px solid #ccc; border-radius: 6px; font-size: 1em; text-align: center; background: white; }
+        .unit { font-weight: bold; color: #555; margin: 0 2px; }
+
+        button#btn-start { background-color: var(--primary); color: white; border: none; padding: 15px; border-radius: 8px; cursor: pointer; font-size: 1.1em; font-weight: bold; transition: all 0.2s; box-shadow: 0 4px 6px rgba(52, 152, 219, 0.3); }
+        button#btn-start:hover { background-color: #2980b9; transform: translateY(-2px); }
+        button#btn-start:active { transform: translateY(0); }
+        
+        button#btn-reset { background-color: #e74c3c; color: white; border: none; padding: 15px; border-radius: 8px; cursor: pointer; font-size: 1.1em; font-weight: bold; margin-top: auto; }
+
+        .plot-container { background: var(--card-bg); padding: 20px; border-radius: 15px; box-shadow: 0 8px 15px rgba(0,0,0,0.05); height: 600px; }
+        .tips { font-size: 0.85em; background: #fff3cd; color: #856404; padding: 10px; border-radius: 8px; margin-top: 20px; border: 1px solid #ffeeba; }
+    </style>
+</head>
+<body>
+
+    <h1>🧪 Laboratório de Titulação</h1>
+    <p class="subtitle">Simulação interativa: Ácido Forte (HCl) vs Base Forte (KOH)</p>
+
+    <div class="container">
+        
+        <!-- Painel Lateral -->
+        <div class="controls">
+            <div style="text-align:center; margin-bottom:10px; font-weight:bold;">Configuração Inicial</div>
+            
+            <!-- Config do Ácido -->
+            <div class="control-group" style="border-left-color: #e74c3c;">
+                <label>Analito (HCl)</label>
+                <div class="input-row">
+                    <span>Vol. Inicial:</span>
+                    <input type="number" id="volAcido" value="50"> <span class="unit">mL</span>
+                </div>
+                <div class="input-row">
+                    <span>Concentração:</span>
+                    <input type="number" id="concAcido" value="0.1"> <span class="unit">mol/L</span>
+                </div>
+            </div>
+
+            <!-- Config da Base -->
+            <div class="control-group" style="border-left-color: #3498db;">
+                <label>Titulante (KOH)</label>
+                <div class="input-row">
+                    <span>Vol. Adicionado:</span>
+                    <input type="number" id="volBase" value="0.00"> <span class="unit">mL</span>
+                </div>
+                <div class="input-row">
+                    <span>Concentração:</span>
+                    <input type="number" id="concBase" value="0.1"> <span class="unit">mol/L</span>
+                </div>
+            </div>
+
+            <button id="btn-start">Adicionar KOH (Drop a Drop) ➡️</button>
+            <button id="btn-reset">Reiniciar Titulação ↺</button>
+
+            <!-- Status -->
+            <div style="margin-top: 20px;">
+                <strong>Ponto de Equivalência Teórico:</strong> <span id="volEq-display" style="font-size:1.2em; color:#d35400;">50.00 mL</span>
+            </div>
+
+            <div class="tips">
+                💡 <strong>Dica:</strong> Clique várias vezes para ver a curva se formar. Quando a linha ficar azul clara e o pH estabilizar acima de 10, você passou o ponto de equivalência!
+            </div>
+        </div>
+
+        <!-- Gráfico Plotly -->
+        <div class="plot-container">
+            <div id="myPlot"></div>
+        </div>
+
+    </div>
+
+<script>
+    // Estado da Aplicação
+    let state = {
+        volAcido: 50,      // mL
+        concAcido: 0.1,    // mol/L
+        volBaseAtual: 0.0, // mL (adicionado no total)
+        concBase: 0.1,     // mol/L
+        dadosTitulacao: [], // Array para guardar a curva histórica
+        pontoEquivalencia: 0
+    };
+
+    // Elementos DOM
+    const inputVolAcido = document.getElementById('volAcido');
+    const inputConcAcido = document.getElementById('concAcido');
+    const inputVolBase = document.getElementById('volBase');
+    const inputConcBase = document.getElementById('concBase');
+    
+    // Elementos de Texto Fixo
+    const dispStatusEq = document.getElementById('volEq-display');
+
+    // --- Função Matemática de Cálculo de pH ---
+    function calcularpH(volAcido, concAcido, volBaseAdicionada, concBase) {
+        const molesAcidoInicial = (volAcido * concAcido) / 1000;
+        const molesBaseAdicionada = (volBaseAdicionada * concBase) / 1000;
+
+        let pH = 0;
+
+        if (molesBaseAdicionada < molesAcidoInicial) {
+            // Região Ácida
+            let molesHlivres = molesAcidoInicial - molesBaseAdicionada;
+            let volumeTotalML = volAcido + volBaseAdicionada;
+            const concH = molesHlivres / (volumeTotalML / 1000);
+            pH = concH > 0 ? -Math.log10(concH) : 7.00;
+        } else if (Math.abs(molesAcidoInicial - molesBaseAdicionada) < 1e-9) {
+            // Ponto de Equivalência
+            pH = 7.00;
+        } else {
+            // Região Básica
+            let molesOHlivres = molesBaseAdicionada - molesAcidoInicial;
+            let volumeTotalML = volAcido + volBaseAdicionada;
+            const concOH = molesOHlivres / (volumeTotalML / 1000);
+            pH = concOH > 0 ? (14.0 - (-Math.log10(concOH))) : 7.00;
+        }
+
+        return pH.toFixed(2);
+    }
+
+    // --- Função Principal: Adicionar KOH ---
+    document.getElementById('btn-start').addEventListener('click', () => {
+        const volAcido = parseFloat(inputVolAcido.value);
+        const concAcido = parseFloat(inputConcAcido.value);
+        const volBaseAtual = parseFloat(inputVolBase.value);
+        const concBase = parseFloat(inputConcBase.value);
+
+        // Calcular Ponto de Equivalência
+        const Veq = (volAcido * concAcido) / concBase;
+
+        // Definir passo de adição (menor para suavidade)
+        const passo = 0.05; 
+
+        // Verificar se estamos perto ou depois do ponto de equivalência
+        // Adicionamos um buffer de segurança (ex: 10 mL) para ver o platô básico
+        const limiteSeguro = Veq + 10; 
+
+        if (volBaseAtual < limiteSeguro) {
+            // Adiciona o passo
+            const novoVol = volBaseAtual + passo;
+            inputVolBase.value = novoVol.toFixed(2);
+            state.volBaseAtual = novoVol;
+            
+            plotAtualizar();
+        } else {
+            // Se já passou do limite seguro, mostra mensagem amigável
+            alert("Você atingiu a região pós-equivalente! A titulação está completa. Pressione Reiniciar para começar de novo.");
+        }
+    });
+
+    document.getElementById('btn-reset').addEventListener('click', () => {
+        inputVolAcido.value = 50;
+        inputConcAcido.value = 0.1;
+        inputVolBase.value = 0.00;
+        inputConcBase.value = 0.1;
+        
+        state.volBaseAtual = 0.0;
+        plotAtualizar();
+    });
+
+    // --- Função de Atualização do Gráfico ---
+    function plotAtualizar() {
+        const volAcido = parseFloat(inputVolAcido.value);
+        const concAcido = parseFloat(inputConcAcido.value);
+        const volBaseAdic = parseFloat(inputVolBase.value);
+        const concBase = parseFloat(inputConcBase.value);
+
+        let Veq = (volAcido * concAcido) / concBase;
+        dispStatusEq.innerText = Veq.toFixed(2) + " mL";
+
+        // Gerar dados para a linha de curva (Suavização)
+        // Vamos gerar pontos desde 0 até um pouco além do volume atual
+        let pontosX = [];
+        let pontosY = [];
+        
+        // Passo de geração de dados para a linha (mais fino que o clique)
+        let passoGrafico = 0.02; 
+        let volMaximo = volBaseAdic + 1.0; // Desenha um pouco além do atual
+
+        for (let v = 0; v <= volMaximo; v += passoGrafico) {
+            pontosX.push(v);
+            pontosY.push(parseFloat(calcularpH(volAcido, concAcido, v, concBase)));
+        }
+
+        // Adicionar o último ponto exato do estado atual para garantir precisão
+        pontosX.push(volBaseAdic);
+        pontosY.push(parseFloat(calcularpH(volAcido, concAcido, volBaseAdic, concBase)));
+
+        // Dados para o marcador (ponto atual)
+        const pHAtual = parseFloat(calcularpH(volAcido, concAcido, volBaseAdic, concBase));
+        const dadosMarcador = [{
+            x: volBaseAdic,
+            y: pHAtual,
+            mode: 'markers',
+            type: 'scatter',
+            name: 'Titulação Atual',
+            marker: { color: '#e74c3c', size: 12, symbol: 'circle-open' },
+            line: { width: 0 }
+        }];
+
+        // Configuração do Gráfico
+        const layout = {
+            title: 'Curva de Titulação: pH vs Volume de KOH',
+            xaxis: {
+                title: 'Volume de KOH Adicionado (mL)',
+                range: [0, Veq + 15], // Eixo X vai até um pouco além do ponto de equivalência
+                gridcolor: '#eee',
+                zerolinecolor: '#ccc'
+            },
+            yaxis: {
+                title: 'pH',
+                range: [0, 14],
+                gridcolor: '#eee',
+                zerolinecolor: '#ccc'
+            },
+            hovermode: 'closest',
+            showlegend: true,
+            legend: { x: 0.01, y: 0.99, orientation: 'h' }
+        };
+
+        const config = { responsive: true, displayModeBar: false };
+
+        Plotly.newPlot('myPlot', [
+            {
+                x: pontosX,
+                y: pontosY,
+                mode: 'lines',
+                name: 'Curva de Titulação',
+                line: { color: '#2980b9', width: 3 }
+            },
+            ...dadosMarcador
+        ], layout, config);
+    }
+
+    // Inicializar gráfico
+    plotAtualizar();
+
+</script>
+</body>
+</html>

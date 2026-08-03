@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Simulador da Lei de Boyle: P1 · V1 = P2 · V2</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: #0f172a;
+      color: #f8fafc;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .card {
+      background: #1e293b;
+      padding: 25px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      max-width: 650px;
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid #334155;
+    }
+
+    h2 { margin-top: 0; color: #f8fafc; font-size: 1.4rem; margin-bottom: 4px; text-align: center; }
+    p.subtitle { color: #94a3b8; margin: 0 0 12px 0; text-align: center; font-size: 0.88rem; }
+
+    /* Badge da Fórmula da Lei de Boyle */
+    .formula-badge {
+      background-color: #0369a1;
+      border: 1px solid #38bdf8;
+      color: #e0f2fe;
+      font-size: 0.95rem;
+      padding: 8px 16px;
+      border-radius: 20px;
+      margin-bottom: 12px;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    /* Palco da Simulação */
+    .lab-stage {
+      width: 100%;
+      height: 280px;
+      background: #020617;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      position: relative;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Painel de Controles */
+    .controls-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+      margin-top: 14px;
+    }
+
+    .config-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .config-box {
+      background-color: #0f172a;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .config-box label {
+      font-size: 0.8rem;
+      color: #cbd5e1;
+      font-weight: 600;
+    }
+
+    .config-val {
+      font-size: 0.95rem;
+      font-weight: bold;
+      color: #38bdf8;
+    }
+
+    input[type=range] {
+      width: 100%;
+      accent-color: #38bdf8;
+      cursor: pointer;
+    }
+
+    /* Display de Saída / Status */
+    #status {
+      font-size: 0.95rem;
+      font-weight: 500;
+      margin-top: 12px;
+      padding: 12px 14px;
+      border-radius: 8px;
+      color: #e0f2fe;
+      background-color: #0f172a;
+      border: 1px solid #0284c7;
+      width: 100%;
+      box-sizing: border-box;
+      text-align: center;
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>Simulador: Lei de Boyle (Transformação Isotérmica)</h2>
+    <p class="subtitle">Temperatura Constante: P₁ · V₁ = P₂ · V₂</p>
+    
+    <div class="formula-badge" id="preview-formula">
+      🎯 P₂ = (P₁ · V₁) / V₂ = (1.00 · 10.0) / 10.0 = <b>1.00 atm</b>
+    </div>
+
+    <!-- Canvas do Cilindro e Partículas -->
+    <div class="lab-stage">
+      <canvas id="simCanvas" width="600" height="280"></canvas>
+    </div>
+
+    <!-- Painel de Controles -->
+    <div class="controls-panel">
+      
+      <div class="config-grid">
+        <!-- Controle de Pressão Inicial (P1) -->
+        <div class="config-box">
+          <label for="range-p1">Pressão Inicial (P₁):</label>
+          <div class="config-val" id="lbl-p1">1.00 atm</div>
+          <input type="range" id="range-p1" min="0.50" max="3.00" step="0.10" value="1.00">
+        </div>
+
+        <!-- Controle de Volume (V) via movimento do Pistão -->
+        <div class="config-box">
+          <label for="range-v">Volume Atual (V):</label>
+          <div class="config-val" id="lbl-v">10.0 L</div>
+          <input type="range" id="range-v" min="2.0" max="10.0" step="0.2" value="10.0">
+        </div>
+      </div>
+
+    </div>
+
+    <div id="status">
+      Arraste os controles de Pressão Inicial ou Volume para observar a relação inversamente proporcional entre Pressão e Volume.
+    </div>
+  </div>
+
+  <script>
+    // Configurações do Estado Física
+    let P1 = 1.00; // atm
+    let V1 = 10.0; // L (Volume inicial de referência)
+    let V = 10.0;  // L (Volume atual)
+    let P = 1.00;  // atm (Pressão calculada)
+
+    // Elementos DOM
+    const rangeP1 = document.getElementById('range-p1');
+    const rangeV = document.getElementById('range-v');
+    const lblP1 = document.getElementById('lbl-p1');
+    const lblV = document.getElementById('lbl-v');
+    const previewFormula = document.getElementById('preview-formula');
+    const elStatus = document.getElementById('status');
+
+    // Configuração do Canvas
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // Partículas de Gás Ideal
+    const numParticulas = 60;
+    const particulas = [];
+
+    // Limites do Cilindro na tela
+    const cilindroX1 = 100;
+    const cilindroX2 = 500;
+    const cilindroY1 = 40;
+    const cilindroY2 = 240;
+    const alturaCilindro = cilindroY2 - cilindroY1;
+
+    // Inicialização das Partículas com direções e velocidades aleatórias
+    for (let i = 0; i < numParticulas; i++) {
+      particulas.push({
+        x: cilindroX1 + Math.random() * (cilindroX2 - cilindroX1),
+        y: cilindroY1 + 20 + Math.random() * (alturaCilindro - 30),
+        vx: (Math.random() - 0.5) * 3,
+        vy: (Math.random() - 0.5) * 3,
+        raio: 4
+      });
+    }
+
+    // Atualização dos Parâmetros do Sistema
+    function atualizarSimulacao() {
+      P1 = parseFloat(rangeP1.value);
+      V = parseFloat(rangeV.value);
+
+      // Aplicação da Lei de Boyle: P = (P1 * V1) / V
+      P = (P1 * V1) / V;
+
+      // Atualização dos textos da interface
+      lblP1.textContent = `${P1.toFixed(2)} atm`;
+      lblV.textContent = `${V.toFixed(1)} L`;
+
+      previewFormula.innerHTML = `🎯 P₂ = (P₁ · V₁) / V₂ = (${P1.toFixed(2)} · ${V1.toFixed(1)}) / ${V.toFixed(1)} = <b>${P.toFixed(2)} atm</b>`;
+
+      elStatus.innerHTML = `Quando o volume é alterado para <b>${V.toFixed(1)} L</b>, a pressão exercida pelo gás passa a ser <b>${P.toFixed(2)} atm</b>.`;
+    }
+
+    rangeP1.addEventListener('input', atualizarSimulacao);
+    rangeV.addEventListener('input', atualizarSimulacao);
+
+    // Loop de Animação e Física das Partículas
+    function animar() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Posição do pistão calculada com base no volume V (de 2.0 a 10.0 L)
+      const pctVolume = V / V1; // 0.2 a 1.0
+      const pistaoY = cilindroY2 - (alturaCilindro * pctVolume);
+
+      // 1. Desenhar Paredes do Cilindro
+      ctx.strokeStyle = '#94a3b8';
+      ctx.lineWidth = 4;
+
+      // Parede esquerda, direita e fundo
+      ctx.beginPath();
+      ctx.moveTo(cilindroX1, cilindroY1);
+      ctx.lineTo(cilindroX1, cilindroY2);
+      ctx.lineTo(cilindroX2, cilindroY2);
+      ctx.lineTo(cilindroX2, cilindroY1);
+      ctx.stroke();
+
+      // 2. Desenhar Pistão
+      ctx.fillStyle = '#64748b';
+      ctx.fillRect(cilindroX1 + 2, pistaoY, (cilindroX2 - cilindroX1) - 4, 16);
+
+      // Haste do Pistão
+      ctx.fillStyle = '#cbd5e1';
+      ctx.fillRect((cilindroX1 + cilindroX2) / 2 - 6, 10, 12, pistaoY - 10);
+
+      // Manômetro de Pressão (Mostrador Dinâmico)
+      ctx.fillStyle = '#0f172a';
+      ctx.strokeStyle = '#38bdf8';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(cilindroX2 + 50, 100, 30, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+
+      // Ponteiro do Manômetro
+      const anguloPonteiro = Math.PI * 0.75 + (P / 15.0) * (Math.PI * 1.5);
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(cilindroX2 + 50, 100);
+      ctx.lineTo(
+        (cilindroX2 + 50) + Math.cos(anguloPonteiro) * 22,
+        100 + Math.sin(anguloPonteiro) * 22
+      );
+      ctx.stroke();
+
+      ctx.fillStyle = '#f8fafc';
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('MANÔMETRO', cilindroX2 + 50, 145);
+
+      // 3. Atualizar e Desenhar Partículas de Gás
+      ctx.fillStyle = '#38bdf8';
+
+      // Velocidade molecular ajustada proporcionalmente à pressão/frequência de colisões
+      const fatorVelocidade = 0.8 + (P / P1) * 0.5;
+
+      for (let p of particulas) {
+        // Mover partícula
+        p.x += p.vx * fatorVelocidade;
+        p.y += p.vy * fatorVelocidade;
+
+        // Colisão com as paredes laterais
+        if (p.x - p.raio <= cilindroX1 + 4) {
+          p.x = cilindroX1 + 4 + p.raio;
+          p.vx *= -1;
+        }
+        if (p.x + p.raio >= cilindroX2 - 4) {
+          p.x = cilindroX2 - 4 - p.raio;
+          p.vx *= -1;
+        }
+
+        // Colisão com o fundo
+        if (p.y + p.raio >= cilindroY2 - 4) {
+          p.y = cilindroY2 - 4 - p.raio;
+          p.vy *= -1;
+        }
+
+        // Colisão com o Pistão móvel
+        if (p.y - p.raio <= pistaoY + 16) {
+          p.y = pistaoY + 16 + p.raio;
+          p.vy *= -1;
+        }
+
+        // Desenhar partícula
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.raio, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      requestAnimationFrame(animar);
+    }
+
+    // Inicialização da Simulação
+    atualizarSimulacao();
+    animar();
+  </script>
+</body>
+</html>

@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Simulador Universal de Estequiometria</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: #0f172a;
+      color: #f8fafc;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .card {
+      background: #1e293b;
+      padding: 25px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      max-width: 750px;
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid #334155;
+    }
+
+    h2 { margin-top: 0; color: #f8fafc; font-size: 1.4rem; text-align: center; }
+    p.subtitle { color: #94a3b8; margin: 0 0 16px 0; text-align: center; font-size: 0.88rem; }
+
+    .equation-display {
+      background-color: #020617;
+      border: 1px solid #3b82f6;
+      color: #60a5fa;
+      font-size: 1.2rem;
+      padding: 12px 20px;
+      border-radius: 10px;
+      font-weight: bold;
+      text-align: center;
+      width: 100%;
+      box-sizing: border-box;
+      margin-bottom: 20px;
+    }
+
+    .grid-container {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      width: 100%;
+    }
+
+    .box {
+      background-color: #0f172a;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .box h4 { margin: 0; color: #38bdf8; font-size: 0.95rem; }
+
+    .input-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.85rem;
+    }
+
+    input[type=number] {
+      width: 80px;
+      padding: 4px 8px;
+      background-color: #1e293b;
+      border: 1px solid #475569;
+      color: #f8fafc;
+      border-radius: 4px;
+      text-align: right;
+    }
+
+    .results-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      font-size: 0.88rem;
+    }
+
+    .results-table th, .results-table td {
+      border: 1px solid #334155;
+      padding: 8px 12px;
+      text-align: center;
+    }
+
+    .results-table th { background-color: #0f172a; color: #94a3b8; }
+    .results-table td { background-color: #1e293b; }
+
+    .badge-limitante {
+      background-color: #ef4444;
+      color: white;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: bold;
+    }
+
+    .badge-excesso {
+      background-color: #eab308;
+      color: black;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 0.75rem;
+      font-weight: bold;
+    }
+
+    .summary-card {
+      margin-top: 16px;
+      padding: 12px;
+      background-color: #020617;
+      border: 1px solid #10b981;
+      border-radius: 8px;
+      width: 100%;
+      box-sizing: border-box;
+      color: #a7f3d0;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>Simulador Estequiométrico Universal</h2>
+    <p class="subtitle">a A + b B → c C + d D</p>
+
+    <!-- Visualização da Equação Balanceada -->
+    <div class="equation-display" id="eq-display">
+      1 A + 1 B → 1 C + 1 D
+    </div>
+
+    <div class="grid-container">
+      <!-- Painel de Coeficientes e Reagente A -->
+      <div class="box">
+        <h4>Reagente A</h4>
+        <div class="input-row">
+          <label>Coeficiente (a):</label>
+          <input type="number" id="coef-a" value="2" min="1">
+        </div>
+        <div class="input-row">
+          <label>Massa Molar (g/mol):</label>
+          <input type="number" id="mm-a" value="2.0" step="0.1">
+        </div>
+        <div class="input-row">
+          <label>Massa Inicial (g):</label>
+          <input type="number" id="massa-a" value="10.0" step="0.1">
+        </div>
+      </div>
+
+      <!-- Painel de Coeficientes e Reagente B -->
+      <div class="box">
+        <h4>Reagente B</h4>
+        <div class="input-row">
+          <label>Coeficiente (b):</label>
+          <input type="number" id="coef-b" value="1" min="1">
+        </div>
+        <div class="input-row">
+          <label>Massa Molar (g/mol):</label>
+          <input type="number" id="mm-b" value="32.0" step="0.1">
+        </div>
+        <div class="input-row">
+          <label>Massa Inicial (g):</label>
+          <input type="number" id="massa-b" value="32.0" step="0.1">
+        </div>
+      </div>
+
+      <!-- Painel do Produto C -->
+      <div class="box">
+        <h4>Produto C</h4>
+        <div class="input-row">
+          <label>Coeficiente (c):</label>
+          <input type="number" id="coef-c" value="2" min="1">
+        </div>
+        <div class="input-row">
+          <label>Massa Molar (g/mol):</label>
+          <input type="number" id="mm-c" value="18.0" step="0.1">
+        </div>
+      </div>
+
+      <!-- Configuração de Rendimento da Reação -->
+      <div class="box">
+        <h4>Condições Globais</h4>
+        <div class="input-row">
+          <label>Rendimento (η %):</label>
+          <input type="number" id="rendimento" value="100" min="1" max="100">
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabela do Balanço de Massa e Mols -->
+    <table class="results-table">
+      <thead>
+        <tr>
+          <th>Substância</th>
+          <th>Status</th>
+          <th>Mols Iniciais</th>
+          <th>Mols Consumidos / Formados</th>
+          <th>Massa Final (g)</th>
+        </tr>
+      </thead>
+      <tbody id="table-body">
+        <!-- Preenchido dinamicamente pelo JavaScript -->
+      </tbody>
+    </table>
+
+    <div class="summary-card" id="summary">
+      <!-- Resumo estequiométrico final -->
+    </div>
+  </div>
+
+  <script>
+    // Elementos do DOM
+    const inputs = document.querySelectorAll('input');
+    const eqDisplay = document.getElementById('eq-display');
+    const tableBody = document.getElementById('table-body');
+    const summary = document.getElementById('summary');
+
+    function calcularEstequiometria() {
+      // 1. Ler valores de entrada
+      const a = parseFloat(document.getElementById('coef-a').value) || 1;
+      const b = parseFloat(document.getElementById('coef-b').value) || 1;
+      const c = parseFloat(document.getElementById('coef-c').value) || 1;
+
+      const mmA = parseFloat(document.getElementById('mm-a').value) || 1;
+      const mmB = parseFloat(document.getElementById('mm-b').value) || 1;
+      const mmC = parseFloat(document.getElementById('mm-c').value) || 1;
+
+      const massaA = parseFloat(document.getElementById('massa-a').value) || 0;
+      const massaB = parseFloat(document.getElementById('massa-b').value) || 0;
+
+      const rendimento = (parseFloat(document.getElementById('rendimento').value) || 100) / 100;
+
+      // 2. Atualizar Display da Equação
+      eqDisplay.textContent = `${a} A + ${b} B → ${c} C`;
+
+      // 3. Converter massas para Mols (n = m / MM)
+      const nA = massaA / mmA;
+      const nB = massaB / mmB;
+
+      // 4. Determinar a Proporção Estequiométrica (n / Coeficiente)
+      const propA = nA / a;
+      const propB = nB / b;
+
+      let limitante = '';
+      let reacoesPossiveis = 0; // Quantas "etapas" de reação ocorrem teóricas
+
+      if (propA <= propB) {
+        limitante = 'A';
+        reacoesPossiveis = propA;
+      } else {
+        limitante = 'B';
+        reacoesPossiveis = propB;
+      }
+
+      // 5. Aplicar o Rendimento Teórico
+      const reacoesEfetivas = reacoesPossiveis * rendimento;
+
+      // 6. Calcular Consumo e Formação de Mols
+      const nA_consumido = reacoesEfetivas * a;
+      const nB_consumido = reacoesEfetivas * b;
+      const nC_formado = reacoesEfetivas * c;
+
+      // Mols restantes
+      const nA_final = Math.max(0, nA - nA_consumido);
+      const nB_final = Math.max(0, nB - nB_consumido);
+
+      // Massas finais
+      const massaA_final = nA_final * mmA;
+      const massaB_final = nB_final * mmB;
+      const massaC_final = nC_formado * mmC;
+
+      // 7. Renderizar a Tabela
+      tableBody.innerHTML = `
+        <tr>
+          <td><b>Reagente A</b></td>
+          <td>${limitante === 'A' ? '<span class="badge-limitante">LIMITANTE</span>' : '<span class="badge-excesso">EXCESSO</span>'}</td>
+          <td>${nA.toFixed(3)} mol</td>
+          <td>-${nA_consumido.toFixed(3)} mol</td>
+          <td><b>${massaA_final.toFixed(2)} g</b></td>
+        </tr>
+        <tr>
+          <td><b>Reagente B</b></td>
+          <td>${limitante === 'B' ? '<span class="badge-limitante">LIMITANTE</span>' : '<span class="badge-excesso">EXCESSO</span>'}</td>
+          <td>${nB.toFixed(3)} mol</td>
+          <td>-${nB_consumido.toFixed(3)} mol</td>
+          <td><b>${massaB_final.toFixed(2)} g</b></td>
+        </tr>
+        <tr>
+          <td><b>Produto C</b></td>
+          <td><span style="color:#10b981;">PRODUTO</span></td>
+          <td>0.000 mol</td>
+          <td>+${nC_formado.toFixed(3)} mol</td>
+          <td><b>${massaC_final.toFixed(2)} g</b></td>
+        </tr>
+      `;
+
+      // 8. Gerar Resumo Explicativo
+      const excessoNome = limitante === 'A' ? 'B' : 'A';
+      const massaExcessoFinal = limitante === 'A' ? massaB_final : massaA_final;
+
+      summary.innerHTML = `
+        🎯 <b>Análise da Reação:</b><br>
+        • O reagente limitante é o <b>Reagente ${limitante}</b>, pois possui a menor proporção molar em relação ao coeficiente.<br>
+        • Sobrarão <b>${massaExcessoFinal.toFixed(2)} g</b> do Reagente em excesso (${excessoNome}).<br>
+        • Com rendimento de <b>${(rendimento * 100).toFixed(0)}%</b>, a massa obtida do Produto C é de <b>${massaC_final.toFixed(2)} g</b>.
+      `;
+    }
+
+    // Escutar eventos de alteração em todos os inputs
+    inputs.forEach(input => input.addEventListener('input', calcularEstequiometria));
+
+    // Execução inicial
+    calcularEstequiometria();
+  </script>
+</body>
+</html>

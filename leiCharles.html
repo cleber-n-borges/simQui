@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Lei de Charles - Gases Ideais</title>
+  <!-- Chart.js via CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #020617;
+      color: #f8fafc;
+      padding: 20px;
+      display: flex;
+      justify-content: center;
+    }
+
+    .container {
+      max-width: 1000px;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .grid-layout {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .grid-layout { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    h3 {
+      font-size: 1.1rem;
+      margin-bottom: 12px;
+      color: #38bdf8;
+      width: 100%;
+      text-align: left;
+    }
+
+    /* Container do Cilindro/Pistão */
+    .piston-container {
+      width: 100%;
+      height: 300px;
+      background-color: #020617;
+      border: 2px solid #334155;
+      border-top: none; /* Aberto em cima */
+      border-radius: 0 0 12px 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    canvas { display: block; }
+
+    /* Controles */
+    .controls {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .slider-group {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .slider-label {
+      display: flex;
+      justify-content: space-between;
+      font-weight: 600;
+      font-size: 0.9rem;
+    }
+
+    .slider-label span.val {
+      color: #38bdf8;
+    }
+
+    input[type=range] {
+      width: 100%;
+      accent-color: #0284c7;
+      cursor: pointer;
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .metric-box {
+      background-color: #020617;
+      border: 1px solid #1e293b;
+      border-radius: 8px;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .metric-box small { color: #64748b; font-size: 0.75rem; display: block; }
+    .metric-box strong { color: #f8fafc; font-size: 1.1rem; }
+
+    .formula-banner {
+      background-color: rgba(56, 189, 248, 0.05);
+      border: 1px solid rgba(56, 189, 248, 0.2);
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      color: #cbd5e1;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="formula-banner">
+      <b>Lei de Charles:</b> Com a pressão constante, o volume ($V$) de um gás é diretamente proporcional à sua temperatura absoluta ($T$). <br>
+      <code>V₁ / T₁ = V₂ / T₂</code> (Pressão constante)
+    </div>
+
+    <div class="grid-layout">
+      <!-- Painel Esquerdo: Animação do Pistão -->
+      <div class="card">
+        <h3>Simulação do Embolo (Pistão)</h3>
+        <div class="piston-container" id="piston-box">
+          <canvas id="simCanvas"></canvas>
+        </div>
+      </div>
+
+      <!-- Painel Direito: Gráfico V vs T -->
+      <div class="card">
+        <h3>Gráfico V × T (Isóbara)</h3>
+        <div style="width: 100%; height: 300px;">
+          <canvas id="chartCanvas"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Controles -->
+    <div class="controls">
+      <div class="slider-group">
+        <div class="slider-label">
+          <label for="tempSlider">Temperatura (T):</label>
+          <span class="val" id="tempVal">300 K (27 °C)</span>
+        </div>
+        <input type="range" id="tempSlider" min="100" max="600" value="300" step="5">
+      </div>
+
+      <div class="metrics-grid">
+        <div class="metric-box">
+          <small>Temperatura</small>
+          <strong id="mTemp">300 K</strong>
+        </div>
+        <div class="metric-box">
+          <small>Volume Resultante</small>
+          <strong id="mVol">30.0 L</strong>
+        </div>
+        <div class="metric-box">
+          <small>Razão (V/T)</small>
+          <strong id="mRatio">0.100</strong>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Referências DOM
+    const tempSlider = document.getElementById('tempSlider');
+    const tempVal = document.getElementById('tempVal');
+    const mTemp = document.getElementById('mTemp');
+    const mVol = document.getElementById('mVol');
+    const mRatio = document.getElementById('mRatio');
+
+    // Canvas da Simulação
+    const canvas = document.getElementById('simCanvas');
+    const ctx = canvas.getContext('2d');
+    const pistonBox = document.getElementById('piston-box');
+
+    // Ajusta resolução do canvas
+    function resizeCanvas() {
+      canvas.width = pistonBox.clientWidth;
+      canvas.height = pistonBox.clientHeight;
+    }
+    resizeCanvas();
+    window.addEventListener('resize', resizeCanvas);
+
+    // Estado da Simulação
+    let T = parseFloat(tempSlider.value); // em Kelvin (100K a 600K)
+    const k = 0.1; // constante de proporcionalidade (V = k * T)
+    let numParticles = 40;
+    let particles = [];
+
+    // Inicializa partículas de gás
+    for (let i = 0; i < numParticles; i++) {
+      particles.push({
+        x: Math.random() * (canvas.width - 20) + 10,
+        y: Math.random() * 100 + 150,
+        vx: (Math.random() - 0.5) * 2,
+        vy: (Math.random() - 0.5) * 2,
+        radius: 4
+      });
+    }
+
+    // Gráfico Chart.js
+    const chartCtx = document.getElementById('chartCanvas').getContext('2d');
+    const chart = new Chart(chartCtx, {
+      type: 'line',
+      data: {
+        datasets: [
+          {
+            label: 'Curva Ideal (V/T = constante)',
+            data: [
+              { x: 100, y: 10 },
+              { x: 600, y: 60 }
+            ],
+            borderColor: '#334155',
+            borderDash: [5, 5],
+            pointRadius: 0,
+            fill: false
+          },
+          {
+            label: 'Estado Atual',
+            data: [{ x: 300, y: 30 }],
+            backgroundColor: '#38bdf8',
+            borderColor: '#0284c7',
+            pointRadius: 8,
+            pointHoverRadius: 10,
+            showLine: false
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          x: {
+            type: 'linear',
+            position: 'bottom',
+            title: { display: true, text: 'Temperatura (K)', color: '#94a3b8' },
+            grid: { color: '#1e293b' },
+            ticks: { color: '#94a3b8' },
+            min: 0,
+            max: 650
+          },
+          y: {
+            title: { display: true, text: 'Volume (L)', color: '#94a3b8' },
+            grid: { color: '#1e293b' },
+            ticks: { color: '#94a3b8' },
+            min: 0,
+            max: 70
+          }
+        },
+        plugins: {
+          legend: { labels: { color: '#f8fafc' } }
+        }
+      }
+    });
+
+    // Loop de Animação das Partículas + Émbolo
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // Volume proporcional a T (máx T=600 -> altura máxima do gás)
+      const currentVol = T * k; // Ex: 300 * 0.1 = 30 L
+      const maxVolHeight = canvas.height - 40;
+      const gasHeight = (T / 600) * maxVolHeight; // Altura do gás em pixels
+      const pistonY = canvas.height - gasHeight; // Posição Y da tampa/émbolo
+
+      // Velocidade do movimento térmico proporcional à raiz de T
+      const speedFactor = Math.sqrt(T / 300) * 2.5;
+
+      // Desenha Água/Gás (Área preenchida)
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.08)';
+      ctx.fillRect(0, pistonY, canvas.width, gasHeight);
+
+      // Desenha o Émbolo (Tampa Móvel)
+      ctx.fillStyle = '#64748b';
+      ctx.fillRect(0, pistonY - 12, canvas.width, 12); // Piston head
+      ctx.fillStyle = '#475569';
+      ctx.fillRect(canvas.width / 2 - 8, 0, 16, pistonY - 12); // Piston rod
+
+      // Atualiza e desenha partículas
+      ctx.fillStyle = '#38bdf8';
+      particles.forEach(p => {
+        p.x += p.vx * speedFactor;
+        p.y += p.vy * speedFactor;
+
+        // Colisão com as paredes laterais
+        if (p.x - p.radius < 0) { p.x = p.radius; p.vx *= -1; }
+        if (p.x + p.radius > canvas.width) { p.x = canvas.width - p.radius; p.vx *= -1; }
+
+        // Colisão com o fundo
+        if (p.y + p.radius > canvas.height) { p.y = canvas.height - p.radius; p.vy *= -1; }
+
+        // Colisão com o émbolo móvel
+        if (p.y - p.radius < pistonY) { p.y = pistonY + p.radius; p.vy *= -1; }
+
+        // Desenha a partícula
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      requestAnimationFrame(animate);
+    }
+
+    // Atualização dos dados do simulador
+    function updateState() {
+      T = parseFloat(tempSlider.value);
+      const celcius = Math.round(T - 273.15);
+      const V = (T * k).toFixed(1);
+      const ratio = (V / T).toFixed(3);
+
+      // Atualiza UI
+      tempVal.textContent = `${T} K (${celcius} °C)`;
+      mTemp.textContent = `${T} K`;
+      mVol.textContent = `${V} L`;
+      mRatio.textContent = ratio;
+
+      // Atualiza Ponto no Gráfico
+      chart.data.datasets[1].data = [{ x: T, y: parseFloat(V) }];
+      chart.update('none'); // Update rápido sem recriar
+    }
+
+    tempSlider.addEventListener('input', updateState);
+
+    // Inicialização
+    updateState();
+    animate();
+  </script>
+</body>
+</html>

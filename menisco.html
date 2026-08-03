@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Simulador de Ajuste de Menisco</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: #e9eef5;
+      margin: 0;
+      padding: 20px;
+    }
+    .card {
+      background: white;
+      padding: 25px;
+      border-radius: 16px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      position: relative;
+    }
+    h2 { margin-top: 0; color: #1a1a1a; margin-bottom: 8px; }
+    p { color: #555; margin: 4px 0; text-align: center; }
+
+    /* Controles de seleção */
+    .controls {
+      margin: 15px 0 10px 0;
+      display: flex;
+      gap: 15px;
+      align-items: center;
+      background-color: #f8f9fa;
+      padding: 8px 16px;
+      border-radius: 20px;
+      border: 1px solid #e0e0e0;
+    }
+    .controls label {
+      font-weight: 600;
+      font-size: 0.95rem;
+      color: #333;
+      cursor: pointer;
+    }
+    .controls select {
+      padding: 6px 12px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      font-size: 0.95rem;
+      outline: none;
+      cursor: pointer;
+    }
+
+    /* Área do Plotly */
+    #plot {
+      width: 380px;
+      height: 440px;
+      position: relative;
+    }
+
+    /* Linha HTML móvel */
+    #red-line {
+      position: absolute;
+      width: 300px; 
+      height: 20px;
+      cursor: ns-resize;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      left: 50%;
+      transform: translateX(-50%);
+      pointer-events: all;
+      user-select: none;
+    }
+
+    #red-line::after {
+      content: '';
+      width: 100%;
+      height: 3px;
+      background-color: #d32f2f;
+      border-radius: 2px;
+    }
+
+    /* --- MENSAGEM COM TAMANHO FIXO --- */
+    #status {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-top: 15px;
+      padding: 10px 16px;
+      border-radius: 8px;
+      color: #721c24;
+      background-color: #f8d7da;
+      border: 1px solid #f5c6cb;
+      
+      /* Trava o tamanho para evitar redimensionamento */
+      width: 320px;
+      height: 48px;
+      box-sizing: border-box;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+    }
+    #status.success {
+      color: #155724;
+      background-color: #d4edda;
+      border-color: #c3e6cb;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>Ajuste de Menisco Profissional</h2>
+    
+    <!-- Seletor do Tipo de Líquido -->
+    <div class="controls">
+      <label for="liquid-select">Substância:</label>
+      <select id="liquid-select">
+        <option value="agua">Água (Menisco Côncavo)</option>
+        <option value="mercurio">Mercúrio (Menisco Convexo)</option>
+      </select>
+    </div>
+
+    <p id="instruction-text">Alinhe com a <b>base (fundo)</b> da curva do líquido.</p>
+
+    <div id="plot">
+      <div id="red-line"></div>
+    </div>
+    
+    <div id="status">Ajuste incorreto. Arraste a linha!</div>
+  </div>
+
+  <script>
+    // --- Estado do Simulador ---
+    let tipoLiquido = 'agua'; // 'agua' ou 'mercurio'
+    const toleranciaData = 0.08;
+    const rangeYData = [0, 5.2];
+    let yAlvoData = 2.2; // Ponto exato de aferição (base ou topo dependendo do líquido)
+
+    const plotDiv = document.getElementById('plot');
+    const redLine = document.getElementById('red-line');
+    const statusDiv = document.getElementById('status');
+    const liquidSelect = document.getElementById('liquid-select');
+    const instructionText = document.getElementById('instruction-text');
+
+    let isDragging = false;
+    let currentYPixel = 140;
+
+    // --- Desenhar Líquido no Plotly ---
+    function renderPlot() {
+      const xLiquido = [];
+      const yLiquido = [];
+
+      xLiquido.push(-1, 1);
+      yLiquido.push(0, 0);
+
+      const isAgua = (tipoLiquido === 'agua');
+      
+      // Cores e fator da curvatura
+      const fillColor = isAgua ? 'rgba(56, 161, 243, 0.45)' : 'rgba(120, 144, 156, 0.75)'; // Azul vs Cinza Metálico
+      const borderColor = isAgua ? '#0288d1' : '#37474f';
+      const fatorCurva = isAgua ? 0.65 : -0.65; // Positivo (Côncavo) vs Negativo (Convexo)
+
+      // Se for Água, o alvo é a base (yAlvoData). Se for Mercúrio, o alvo é o topo.
+      for (let x = 1; x >= -1; x -= 0.05) {
+        xLiquido.push(x);
+        yLiquido.push(fatorCurva * Math.pow(x, 2) + yAlvoData);
+      }
+
+      const data = [
+        // Polígono do Líquido
+        {
+          x: xLiquido,
+          y: yLiquido,
+          fill: 'toself',
+          fillcolor: fillColor,
+          line: { color: borderColor, width: 2.5 },
+          type: 'scatter', mode: 'lines', hoverinfo: 'none'
+        },
+        // Paredes do Gargalo (Vidro)
+        {
+          x: [-1, -1, null, 1, 1],
+          y: [0, 5, null, 0, 5],
+          mode: 'lines',
+          line: { color: '#37474f', width: 6 },
+          hoverinfo: 'none'
+        }
+      ];
+
+      const layout = {
+        xaxis: { range: [-2.2, 2.2], visible: false, fixedrange: true },
+        yaxis: { range: rangeYData, visible: false, fixedrange: true },
+        showlegend: false,
+        margin: { t: 10, b: 10, l: 10, r: 10 },
+        paper_bgcolor: 'rgba(0,0,0,0)',
+        plot_bgcolor: 'rgba(0,0,0,0)',
+      };
+
+      Plotly.newPlot('plot', data, layout, { displayModeBar: false, staticPlot: true });
+    }
+
+    // --- Lógica da Linha Móvel & Validação ---
+    function setRedLinePosition(yPixels) {
+      const plotHeight = plotDiv.clientHeight;
+      
+      yPixels = Math.max(10, Math.min(plotHeight - 20, yPixels));
+      currentYPixel = yPixels;
+
+      redLine.style.top = `${yPixels}px`;
+
+      // Conversão Pixels -> Plotly Data
+      const plotHeightRatio = (plotHeight - yPixels) / plotHeight;
+      const dataYValue = rangeYData[0] + plotHeightRatio * (rangeYData[1] - rangeYData[0]);
+
+      verificarAjuste(dataYValue);
+    }
+
+    function verificarAjuste(dataYValue) {
+      const erro = Math.abs(dataYValue - yAlvoData);
+
+      if (erro <= toleranciaData) {
+        statusDiv.textContent = "✓ Correto! Alinhamento perfeito no menisco.";
+        statusDiv.className = "success";
+      } else {
+        const parteMenisco = (tipoLiquido === 'agua') ? 'fundo/base' : 'topo/ápice';
+        statusDiv.textContent = `✕ Incorreto. Alinhe com o ${parteMenisco} da curva!`;
+        statusDiv.className = "";
+      }
+    }
+
+    // --- Eventos de Troca de Líquido ---
+    liquidSelect.addEventListener('change', (e) => {
+      tipoLiquido = e.target.value;
+
+      if (tipoLiquido === 'agua') {
+        instructionText.innerHTML = "Alinhe com a <b>base (fundo)</b> da curva do líquido.";
+      } else {
+        instructionText.innerHTML = "Alinhe com o <b>topo (ápice)</b> da curva do líquido.";
+      }
+
+      renderPlot();
+      setRedLinePosition(currentYPixel); // Reavalia posição atual
+    });
+
+    // --- Drag & Drop da Linha ---
+    redLine.addEventListener('mousedown', (e) => {
+      isDragging = true;
+      e.preventDefault();
+    });
+
+    window.addEventListener('mouseup', () => { isDragging = false; });
+
+    window.addEventListener('mousemove', (e) => {
+      if (!isDragging) return;
+      const rect = plotDiv.getBoundingClientRect();
+      const mouseYRelativo = e.clientY - rect.top;
+      setRedLinePosition(mouseYRelativo);
+    });
+
+    // Inicialização
+    renderPlot();
+    setRedLinePosition(currentYPixel);
+  </script>
+</body>
+</html>

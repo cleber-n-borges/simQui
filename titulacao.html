@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Simulador de Titulação Ácido-Base</title>
+  <script src="https://cdn.plot.ly/plotly-latest.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: #e9eef5;
+      margin: 0;
+      padding: 20px;
+    }
+    .container {
+      display: flex;
+      gap: 20px;
+      max-width: 900px;
+      width: 100%;
+    }
+    .card {
+      background: white;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.1);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      flex: 1;
+    }
+    h2 { margin-top: 0; color: #1a1a1a; font-size: 1.3rem; }
+    
+    /* Painel do Erlenmeyer */
+    #flask-panel {
+      position: relative;
+      width: 100%;
+      height: 250px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-end;
+      background: #f8f9fa;
+      border-radius: 12px;
+      border: 1px solid #e0e0e0;
+      overflow: hidden;
+      margin-bottom: 15px;
+    }
+    
+    /* Representação do Erlenmeyer */
+    .erlenmeyer {
+      width: 120px;
+      height: 140px;
+      position: relative;
+      background: rgba(255, 255, 255, 0.8);
+      clip-path: polygon(35% 0%, 65% 0%, 65% 30%, 100% 100%, 0% 100%, 35% 30%);
+      border: 2px solid #333;
+      display: flex;
+      align-items: flex-end;
+    }
+    .liquid {
+      width: 100%;
+      height: 70%;
+      background-color: rgba(255, 255, 255, 0.9); /* Incolor inicialmente */
+      transition: background-color 0.3s ease;
+    }
+
+    /* Controles */
+    .btn-group {
+      display: flex;
+      gap: 8px;
+      width: 100%;
+      margin-bottom: 10px;
+    }
+    button {
+      flex: 1;
+      padding: 10px 6px;
+      border: none;
+      border-radius: 6px;
+      background-color: #0288d1;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: background-color 0.2s;
+    }
+    button:hover { background-color: #01579b; }
+    button:disabled { background-color: #ccc; cursor: not-allowed; }
+    button.stop { background-color: #d32f2f; }
+    button.stop:hover { background-color: #9a0007; }
+    button.reset { background-color: #757575; }
+
+    /* Leituras digitais */
+    .readouts {
+      display: flex;
+      justify-content: space-between;
+      width: 100%;
+      margin-bottom: 10px;
+      font-weight: bold;
+      font-size: 0.95rem;
+      color: #333;
+    }
+
+    /* Gráfico */
+    #plot {
+      width: 100%;
+      height: 380px;
+    }
+
+    /* Caixa de Status / Mensagem */
+    #status {
+      font-size: 0.9rem;
+      font-weight: 600;
+      padding: 10px;
+      border-radius: 8px;
+      color: #0c5460;
+      background-color: #d1ecf1;
+      border: 1px solid #bee5eb;
+      width: 100%;
+      box-sizing: border-box;
+      text-align: center;
+      min-height: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #status.success { color: #155724; background-color: #d4edda; border-color: #c3e6cb; }
+    #status.warning { color: #856404; background-color: #fff3cd; border-color: #ffeeba; }
+    #status.danger { color: #721c24; background-color: #f8d7da; border-color: #f5c6cb; }
+  </style>
+</head>
+<body>
+
+  <h2 style="margin-bottom: 15px;">Simulador: Titulação Ácido Forte (HCl) com Base Forte (NaOH)</h2>
+
+  <div class="container">
+    <!-- Coluna Esquerda: Bancada do Laboratório -->
+    <div class="card">
+      <h2>Bancada de Titulação</h2>
+      
+      <div id="flask-panel">
+        <div style="position: absolute; top: 10px; font-weight: bold; color: #555;">Indicador: Fenolftaleína</div>
+        <!-- Erlenmeyer Visual -->
+        <div class="erlenmeyer">
+          <div id="liquid" class="liquid"></div>
+        </div>
+      </div>
+
+      <div class="readouts">
+        <span>Vol. NaOH: <span id="vol-display">0.00</span> mL</span>
+        <span>pH: <span id="ph-display">1.00</span></span>
+      </div>
+
+      <div class="btn-group">
+        <button id="btn-drop">+ 1 Gota (0.05 mL)</button>
+        <button id="btn-1ml">+ 1.00 mL</button>
+      </div>
+      <div class="btn-group">
+        <button id="btn-auto">Gotejar Automático</button>
+        <button id="btn-reset" class="reset">Reiniciar</button>
+      </div>
+
+      <div id="status">Adicione NaOH para iniciar a titulação.</div>
+    </div>
+
+    <!-- Coluna Direita: Gráfico da Curva em Tempo Real -->
+    <div class="card">
+      <h2>Curva de Titulação (pH vs Volume)</h2>
+      <div id="plot"></div>
+    </div>
+  </div>
+
+  <script>
+    // --- Parâmetros Químicos da Simulação ---
+    // Titulação de 25 mL de HCl 0.1 M com NaOH 0.1 M
+    const V_acido = 25.0; // mL
+    const C_acido = 0.10; // M
+    const C_base = 0.10;  // M
+    const V_equivalencia = (V_acido * C_acido) / C_base; // 25.0 mL
+
+    // Estado da Aplicação
+    let vAdicionado = 0.0;
+    let autoInterval = null;
+
+    // Dados para o Gráfico
+    let xData = [0.0];
+    let yData = [1.0];
+
+    // Elementos do DOM
+    const volDisplay = document.getElementById('vol-display');
+    const phDisplay = document.getElementById('ph-display');
+    const liquid = document.getElementById('liquid');
+    const statusDiv = document.getElementById('status');
+    const btnDrop = document.getElementById('btn-drop');
+    const btn1ml = document.getElementById('btn-1ml');
+    const btnAuto = document.getElementById('btn-auto');
+    const btnReset = document.getElementById('btn-reset');
+
+    // --- Função Matemática: Cálculo Realista de pH ---
+    function calcularPH(vBase) {
+      const n_acido_ini = (V_acido / 1000) * C_acido;
+      const n_base_add = (vBase / 1000) * C_base;
+      const vTotal = (V_acido + vBase) / 1000; // Litros
+
+      if (vBase < V_equivalencia) {
+        // Antes do ponto de equivalência (Excesso de H+)
+        const n_h_remanescente = n_acido_ini - n_base_add;
+        const conc_h = n_h_remanescente / vTotal;
+        return -Math.log10(conc_h);
+      } else if (Math.abs(vBase - V_equivalencia) < 0.001) {
+        // No ponto de equivalência exato
+        return 7.00;
+      } else {
+        // Após o ponto de equivalência (Excesso de OH-)
+        const n_oh_excesso = n_base_add - n_acido_ini;
+        const conc_oh = n_oh_excesso / vTotal;
+        const pOH = -Math.log10(conc_oh);
+        return 14.0 - pOH;
+      }
+    }
+
+    // --- Atualização da Cor da Fenolftaleína ---
+    function atualizarCorIndicador(pH) {
+      // Fenolftaleína: Incolor abaixo de 8.2, transição para Rosa até 10.0
+      if (pH < 8.2) {
+        liquid.style.backgroundColor = "rgba(240, 248, 255, 0.85)"; // Praticamente incolor
+      } else if (pH >= 8.2 && pH <= 10.0) {
+        // Transição suave para rosa claro / viragem ideal
+        const alpha = (pH - 8.2) / (10.0 - 8.2);
+        liquid.style.backgroundColor = `rgba(255, 105, 180, ${0.3 + alpha * 0.5})`;
+      } else {
+        // Excesso de base: Rosa Choque / Magenta intenso
+        liquid.style.backgroundColor = "rgba(220, 20, 60, 0.85)";
+      }
+    }
+
+    // --- Inicialização do Gráfico Plotly ---
+    function initPlot() {
+      const trace = {
+        x: xData,
+        y: yData,
+        mode: 'lines+markers',
+        line: { color: '#0288d1', width: 3 },
+        marker: { size: 4 },
+        name: 'pH'
+      };
+
+      const layout = {
+        xaxis: { title: 'Volume de NaOH (mL)', range: [0, 40], fixedrange: true },
+        yaxis: { title: 'pH', range: [0, 14], fixedrange: true },
+        margin: { t: 20, b: 40, l: 40, r: 20 },
+        shapes: [
+          // Faixa da viragem da Fenolftaleína (pH 8.2 - 10.0)
+          {
+            type: 'rect',
+            xref: 'paper', x0: 0, x1: 1,
+            y0: 8.2, y1: 10.0,
+            fillcolor: 'rgba(255, 105, 180, 0.15)',
+            line: { width: 0 }
+          }
+        ]
+      };
+
+      Plotly.newPlot('plot', [trace], layout, { displayModeBar: false });
+    }
+
+    // --- Adição de Titulante e Atualização ---
+    function adicionarBase(volume) {
+      vAdicionado += volume;
+      const phAtual = calcularPH(vAdicionado);
+
+      xData.push(vAdicionado);
+      yData.push(phAtual);
+
+      // Atualiza interface
+      volDisplay.textContent = vAdicionado.toFixed(2);
+      phDisplay.textContent = phAtual.toFixed(2);
+      atualizarCorIndicador(phAtual);
+
+      // Atualiza gráfico
+      Plotly.update('plot', { x: [xData], y: [yData] });
+
+      // Validação pedagógica
+      validarEstado(phAtual);
+    }
+
+    // --- Validação do Ponto de Viragem ---
+    function validarEstado(pH) {
+      if (pH < 8.2) {
+        statusDiv.textContent = "Solução incolor. Continue adicionando NaOH.";
+        statusDiv.className = "";
+      } else if (pH >= 8.2 && pH <= 10.0) {
+        statusDiv.textContent = "✓ Ponto de Viragem alcançado! Rosa suave perfeito.";
+        statusDiv.className = "success";
+        pararGotejamento();
+      } else {
+        statusDiv.textContent = "✕ Passou do ponto! Solução hiper-titulada (rosa forte).";
+        statusDiv.className = "danger";
+        pararGotejamento();
+      }
+    }
+
+    // --- Modo Automático (Gotejar) ---
+    function alternarGotejamento() {
+      if (autoInterval) {
+        pararGotejamento();
+      } else {
+        btnAuto.textContent = "Parar Gotejamento";
+        btnAuto.className = "stop";
+        autoInterval = setInterval(() => {
+          adicionarBase(0.1); // Adiciona 0.1 mL por pulso
+        }, 150);
+      }
+    }
+
+    function pararGotejamento() {
+      if (autoInterval) {
+        clearInterval(autoInterval);
+        autoInterval = null;
+        btnAuto.textContent = "Gotejar Automático";
+        btnAuto.className = "";
+      }
+    }
+
+    // --- Reiniciar Simulação ---
+    function reiniciar() {
+      pararGotejamento();
+      vAdicionado = 0.0;
+      xData = [0.0];
+      yData = [1.0];
+
+      volDisplay.textContent = "0.00";
+      phDisplay.textContent = "1.00";
+      liquid.style.backgroundColor = "rgba(240, 248, 255, 0.85)";
+
+      statusDiv.textContent = "Adicione NaOH para iniciar a titulação.";
+      statusDiv.className = "";
+
+      Plotly.update('plot', { x: [xData], y: [yData] });
+    }
+
+    // --- Listeners de Eventos ---
+    btnDrop.addEventListener('click', () => adicionarBase(0.05));
+    btn1ml.addEventListener('click', () => adicionarBase(1.00));
+    btnAuto.addEventListener('click', alternarGotejamento);
+    btnReset.addEventListener('click', reiniciar);
+
+    // Inicializa ao carregar
+    initPlot();
+  </script>
+</body>
+</html>

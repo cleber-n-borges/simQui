@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Simulador Universal: Diluição de Soluções (C1 V1 = C2 V2)</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: #0f172a;
+      color: #f8fafc;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .card {
+      background: #1e293b;
+      padding: 25px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      max-width: 650px;
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid #334155;
+    }
+
+    h2 { margin-top: 0; color: #f8fafc; font-size: 1.4rem; margin-bottom: 4px; text-align: center; }
+    p.subtitle { color: #94a3b8; margin: 0 0 12px 0; text-align: center; font-size: 0.88rem; }
+
+    /* Fórmula e Badge do Painel */
+    .formula-badge {
+      background-color: #3b0764;
+      border: 1px solid #a855f7;
+      color: #f3e8ff;
+      font-size: 0.95rem;
+      padding: 8px 16px;
+      border-radius: 20px;
+      margin-bottom: 12px;
+      font-weight: 600;
+      text-align: center;
+    }
+
+    /* Palco do Laboratório SVG */
+    .lab-stage {
+      width: 100%;
+      height: 300px;
+      background: #020617;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      position: relative;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Painel de Controles */
+    .controls-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      width: 100%;
+      margin-top: 14px;
+    }
+
+    .config-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 10px;
+      width: 100%;
+    }
+
+    .config-box {
+      background-color: #0f172a;
+      padding: 10px 12px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .config-box label {
+      font-size: 0.8rem;
+      color: #cbd5e1;
+      font-weight: 600;
+    }
+
+    .config-val {
+      font-size: 0.9rem;
+      font-weight: bold;
+      color: #c084fc;
+    }
+
+    input[type=range], select {
+      width: 100%;
+      accent-color: #a855f7;
+      cursor: pointer;
+      background-color: #1e293b;
+      color: #f8fafc;
+      border: 1px solid #475569;
+      border-radius: 6px;
+      padding: 4px;
+      font-size: 0.85rem;
+    }
+
+    .btn-row {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+    }
+
+    button {
+      padding: 10px 14px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      flex: 1;
+    }
+
+    .btn-action { background-color: #9333ea; color: white; }
+    .btn-action:hover { background-color: #7e22ce; }
+    .btn-action:disabled { background-color: #334155; color: #64748b; cursor: not-allowed; }
+
+    .btn-water { background-color: #0284c7; color: white; }
+    .btn-water:hover { background-color: #0369a1; }
+    .btn-water:disabled { background-color: #334155; color: #64748b; cursor: not-allowed; }
+
+    .btn-reset { background-color: #475569; color: #f8fafc; flex: 0.3; }
+    .btn-reset:hover { background-color: #64748b; }
+
+    /* Caixa de Status */
+    #status {
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-top: 12px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      color: #e2e8f0;
+      background-color: #0f172a;
+      border: 1px solid #334155;
+      width: 100%;
+      box-sizing: border-box;
+      text-align: center;
+      min-height: 52px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1.3;
+    }
+
+    #status.success { border-color: #a855f7; background-color: #3b0764; color: #f3e8ff; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>Diluição Universal de Soluções</h2>
+    <p class="subtitle">Lei da Conservação do Soluto: C₁ · V₁ = C₂ · V₂</p>
+    
+    <div class="formula-badge" id="preview-formula">
+      🎯 Previsão C₂ = (C₁ · V₁) / V₂ = (1,00 · 25) / 250 = <b>0,100 mol/L</b>
+    </div>
+
+    <div class="lab-stage">
+      <svg id="svg-lab" viewBox="0 0 400 280">
+        <!-- Bancada -->
+        <rect x="0" y="250" width="400" height="30" fill="#1e293b" />
+        <rect x="0" y="250" width="400" height="3" fill="#475569" />
+
+        <!-- 1. Béquer da Solução Estoque (C1) -->
+        <g transform="translate(30, 140)">
+          <rect x="0" y="0" width="70" height="110" rx="4" fill="rgba(255,255,255,0.08)" stroke="#94a3b8" stroke-width="1.5"/>
+          <!-- Líquido Roxo Concentrado com intensidade ligada a C1 -->
+          <rect id="estoque-liquido" x="2" y="30" width="66" height="78" fill="#7e22ce" opacity="0.95"/>
+          <text x="35" y="12" font-size="9" fill="#e2e8f0" font-weight="bold" text-anchor="middle">Estoque (C₁)</text>
+          <text id="svg-c1-text" x="35" y="22" font-size="8" fill="#c084fc" text-anchor="middle">1.00 mol/L</text>
+        </g>
+
+        <!-- 2. Balão Volumétrico de Capacidade Ajustável (V2) -->
+        <g transform="translate(230, 90)">
+          <!-- Gargalo e Corpo do Balão -->
+          <path d="M 45 0 L 55 0 L 55 50 L 85 110 A 45 45 0 1 1 15 110 L 45 50 Z" fill="rgba(255,255,255,0.08)" stroke="#94a3b8" stroke-width="1.5"/>
+          
+          <!-- Linha do Menisco (Marcação de V2) -->
+          <line x1="42" y1="35" x2="58" y2="35" stroke="#ef4444" stroke-width="1.5" stroke-dasharray="2,1"/>
+          <text id="svg-v2-text" x="62" y="38" font-size="8" fill="#ef4444" font-weight="bold">250 mL</text>
+
+          <!-- Líquido no Balão Volumétrico -->
+          <g id="balao-liquido-grupo">
+            <path id="balao-liquido" d="M 50 150 A 45 45 0 0 1 50 150 Z" fill="#c084fc" opacity="0"/>
+          </g>
+
+          <text x="50" y="165" font-size="10" fill="#e2e8f0" font-weight="bold" text-anchor="middle">Balão Volumétrico (V₂)</text>
+        </g>
+
+        <!-- 3. Pissega / Água Destilada -->
+        <g id="pissega" transform="translate(140, 100)" opacity="0">
+          <path d="M 10 20 L 30 20 L 35 80 L 5 80 Z" fill="rgba(56, 189, 248, 0.2)" stroke="#38bdf8" stroke-width="1.5"/>
+          <path d="M 20 20 L 20 0 L 35 -15" fill="none" stroke="#38bdf8" stroke-width="2"/>
+          <text x="20" y="50" font-size="8" fill="#e0f2fe" text-anchor="middle">H₂O</text>
+        </g>
+
+        <!-- Filete de Água Despejando -->
+        <line id="filete-agua" x1="280" y1="10" x2="280" y2="100" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4,2" opacity="0"/>
+
+        <!-- 4. Pipeta com Alíquota V1 -->
+        <g id="pipeta" transform="translate(0, 0)">
+          <path d="M 62 40 L 68 40 L 68 180 L 62 180 Z" fill="rgba(255,255,255,0.2)" stroke="#cbd5e1" stroke-width="1"/>
+          <path id="pipeta-liquido" d="M 63 120 L 67 120 L 67 179 L 63 179 Z" fill="#7e22ce" opacity="0"/>
+        </g>
+
+        <!-- Pingo de Transferência -->
+        <circle id="pingo" cx="280" cy="60" r="3" fill="#7e22ce" opacity="0"/>
+      </svg>
+    </div>
+
+    <!-- Painel de Controles Configuráveis -->
+    <div class="controls-panel">
+      
+      <div class="config-grid">
+        <!-- Controle C1 -->
+        <div class="config-box">
+          <label for="range-c1">C₁ (Estoque):</label>
+          <div class="config-val" id="lbl-c1">1,00 mol/L</div>
+          <input type="range" id="range-c1" min="0.1" max="3.0" step="0.1" value="1.0">
+        </div>
+
+        <!-- Controle V1 -->
+        <div class="config-box">
+          <label for="range-v1">V₁ (Alíquota):</label>
+          <div class="config-val" id="lbl-v1">25 mL</div>
+          <input type="range" id="range-v1" min="5" max="100" step="5" value="25">
+        </div>
+
+        <!-- Controle V2 -->
+        <div class="config-box">
+          <label for="select-v2">V₂ (Balão Final):</label>
+          <div class="config-val" id="lbl-v2">250 mL</div>
+          <select id="select-v2">
+            <option value="50">50 mL</option>
+            <option value="100">100 mL</option>
+            <option value="250" selected>250 mL</option>
+            <option value="500">500 mL</option>
+            <option value="1000">1000 mL</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button id="btn-pipetar" class="btn-action">🧪 Pipetar V₁ para o Balão</button>
+        <button id="btn-completar" class="btn-water" disabled>💧 Completar com H₂O até V₂</button>
+        <button id="btn-reset" class="btn-reset">🔄 Reiniciar</button>
+      </div>
+
+    </div>
+
+    <div id="status">Configure C₁, V₁ e V₂ acima e clique em "Pipetar V₁" para iniciar o processo.</div>
+  </div>
+
+  <script>
+    // Estado Configurável do Experimento
+    let C1 = 1.00; // mol/L
+    let V1 = 25;   // mL
+    let V2 = 250;  // mL
+    let C2 = 0;    // mol/L
+    let etapa = 0; // 0: Configuração, 1: Pipetado V1, 2: Diluído V2
+
+    // Elementos DOM
+    const rangeC1 = document.getElementById('range-c1');
+    const rangeV1 = document.getElementById('range-v1');
+    const selectV2 = document.getElementById('select-v2');
+
+    const lblC1 = document.getElementById('lbl-c1');
+    const lblV1 = document.getElementById('lbl-v1');
+    const lblV2 = document.getElementById('lbl-v2');
+    const previewFormula = document.getElementById('preview-formula');
+
+    const btnPipetar = document.getElementById('btn-pipetar');
+    const btnCompletar = document.getElementById('btn-completar');
+    const btnReset = document.getElementById('btn-reset');
+    const elStatus = document.getElementById('status');
+
+    // Elementos SVG
+    const svgC1Text = document.getElementById('svg-c1-text');
+    const svgV2Text = document.getElementById('svg-v2-text');
+    const estoqueLiquido = document.getElementById('estoque-liquido');
+
+    const pipeta = document.getElementById('pipeta');
+    const pipetaLiquido = document.getElementById('pipeta-liquido');
+    const balaoLiquido = document.getElementById('balao-liquido');
+    const pingo = document.getElementById('pingo');
+    const pissega = document.getElementById('pissega');
+    const fileteAgua = document.getElementById('filete-agua');
+
+    // Atualização e Validação dos Controles em Tempo Real
+    function atualizarConfiguracoes() {
+      if (etapa !== 0) return;
+
+      C1 = parseFloat(rangeC1.value);
+      V2 = parseInt(selectV2.value, 10);
+
+      // Limita V1 para nunca ultrapassar o Balão V2 escolhido
+      rangeV1.max = V2.toString();
+      if (parseInt(rangeV1.value, 10) > V2) {
+        rangeV1.value = V2.toString();
+      }
+      V1 = parseInt(rangeV1.value, 10);
+
+      // Atualiza Labels da Interface
+      lblC1.textContent = `${C1.toFixed(2)} mol/L`;
+      lblV1.textContent = `${V1} mL`;
+      lblV2.textContent = `${V2} mL`;
+
+      // Atualiza Elementos SVG
+      svgC1Text.textContent = `${C1.toFixed(2)} mol/L`;
+      svgV2Text.textContent = `${V2} mL`;
+      estoqueLiquido.setAttribute('opacity', Math.min(1.0, 0.4 + (C1 / 3.0) * 0.6).toFixed(2));
+
+      // Calcula Previsão C2
+      const c2Previsto = (C1 * V1) / V2;
+      previewFormula.innerHTML = `🎯 Previsão C₂ = (C₁ · V₁) / V₂ = (${C1.toFixed(2)} · ${V1}) / ${V2} = <b>${c2Previsto.toFixed(3)} mol/L</b>`;
+    }
+
+    rangeC1.addEventListener('input', atualizarConfiguracoes);
+    rangeV1.addEventListener('input', atualizarConfiguracoes);
+    selectV2.addEventListener('change', atualizarConfiguracoes);
+
+    // Inicialização da fórmula prévia
+    atualizarConfiguracoes();
+
+    // 1. Ação: Pipetar V1 para o Balão
+    btnPipetar.addEventListener('click', () => {
+      etapa = 1;
+      desabilitarControles(true);
+
+      // Animação da Pipeta buscando solução no estoque
+      pipeta.style.transition = 'transform 0.8s ease-in-out';
+      pipeta.setAttribute('transform', 'translate(0, 30)');
+
+      setTimeout(() => {
+        pipetaLiquido.setAttribute('opacity', '1');
+        
+        // Mover Pipeta sobre o Balão Volumétrico
+        setTimeout(() => {
+          pipeta.setAttribute('transform', 'translate(215, -70)');
+
+          // Efeito de gotejamento / esvaziamento
+          setTimeout(() => {
+            pipetaLiquido.setAttribute('opacity', '0');
+            pingo.setAttribute('opacity', '1');
+            
+            // Preencher o fundo do balão proporcionalmente a V1/V2
+            desenharLiquidoBalao(V1, V2, C1);
+            
+            setTimeout(() => {
+              pingo.setAttribute('opacity', '0');
+              pipeta.setAttribute('transform', 'translate(0, 0)');
+              
+              btnCompletar.disabled = false;
+              elStatus.textContent = `Transferidos ${V1} mL da solução estoque para o balão de ${V2} mL. Agora complete com água destilada.`;
+            }, 500);
+
+          }, 800);
+        }, 800);
+      }, 600);
+    });
+
+    // 2. Ação: Completar com Água Destilada até V2
+    btnCompletar.addEventListener('click', () => {
+      etapa = 2;
+      btnCompletar.disabled = true;
+
+      // Cálculo Real de C2
+      C2 = (C1 * V1) / V2;
+
+      // Mostrar Pissega e filete de água
+      pissega.style.transition = 'opacity 0.4s ease';
+      pissega.setAttribute('opacity', '1');
+      fileteAgua.setAttribute('opacity', '0.8');
+
+      // Animação de encher o balão até a linha do menisco V2
+      let volAtual = V1;
+      const incremento = Math.max(1, (V2 - V1) / 35);
+
+      const intervalo = setInterval(() => {
+        volAtual += incremento;
+        if (volAtual >= V2) {
+          volAtual = V2;
+          clearInterval(intervalo);
+
+          fileteAgua.setAttribute('opacity', '0');
+          pissega.setAttribute('opacity', '0');
+
+          // Cor final proporcional à nova concentração C2
+          const concIntermediaria = (C1 * V1) / V2;
+          desenharLiquidoBalao(V2, V2, concIntermediaria);
+
+          // Exibir Resultado Final
+          elStatus.innerHTML = `🎯 <b>Diluição Concluída com Sucesso!</b><br>` +
+            `C₂ = (${C1.toFixed(2)} mol/L · ${V1} mL) / ${V2} mL = <b>${C2.toFixed(3)} mol/L</b>`;
+          elStatus.className = 'success';
+        } else {
+          // Atualiza visualização da mistura subindo
+          const concIntermediaria = (C1 * V1) / volAtual;
+          desenharLiquidoBalao(volAtual, V2, concIntermediaria);
+        }
+      }, 40);
+    });
+
+    // Função de Renderização do Líquido no SVG com base na Concentração Dinâmica
+    function desenharLiquidoBalao(volAtual, volTotal, concAtual) {
+      const pct = Math.min(1.0, volAtual / volTotal);
+      
+      let pathD = '';
+      if (pct < 0.5) {
+        const yNivel = 155 - (pct * 110);
+        pathD = `M 20 ${yNivel} Q 50 ${yNivel + 15} 80 ${yNivel} A 42 42 0 0 1 20 ${yNivel} Z`;
+      } else {
+        const yNivel = 110 - ((pct - 0.5) * 150);
+        pathD = `M 45 ${yNivel} L 55 ${yNivel} L 55 50 L 85 110 A 45 45 0 1 1 15 110 L 45 50 Z`;
+      }
+
+      // Intensidade visual da cor roxa proporcional à concentração em relação ao máximo (3.0 M)
+      const opacidade = Math.max(0.12, Math.min(1.0, concAtual / 2.5)).toFixed(2);
+
+      balaoLiquido.setAttribute('d', pathD);
+      balaoLiquido.setAttribute('opacity', opacidade);
+    }
+
+    function desabilitarControles(bloquear) {
+      rangeC1.disabled = bloquear;
+      rangeV1.disabled = bloquear;
+      selectV2.disabled = bloquear;
+      btnPipetar.disabled = bloquear;
+    }
+
+    // Reiniciar Simulador
+    btnReset.addEventListener('click', () => {
+      etapa = 0;
+      desabilitarControles(false);
+      btnCompletar.disabled = true;
+
+      balaoLiquido.setAttribute('opacity', '0');
+      pipetaLiquido.setAttribute('opacity', '0');
+      pipeta.setAttribute('transform', 'translate(0, 0)');
+
+      atualizarConfiguracoes();
+
+      elStatus.textContent = 'Configure C₁, V₁ e V₂ acima e clique em "Pipetar V₁" para iniciar o processo.';
+      elStatus.className = '';
+    });
+  </script>
+</body>
+</html>

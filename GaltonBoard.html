@@ -1,0 +1,2193 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tábua de Galton - Simulação Física Avançada</title>
+    <style>
+        /* ======================================================================
+           ESTILOS GLOBAIS
+           ====================================================================== */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #0a0a1a;
+            color: #e0e0e0;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .main-container {
+            max-width: 1300px;
+            width: 100%;
+            background: #12122a;
+            border-radius: 24px;
+            padding: 25px;
+            box-shadow: 0 30px 80px rgba(0, 0, 0, 0.9);
+            border: 1px solid #2a2a5e;
+        }
+
+        .main-title {
+            text-align: center;
+            font-size: 32px;
+            font-weight: 300;
+            letter-spacing: 4px;
+            margin-bottom: 25px;
+            color: #c0c0d0;
+            border-bottom: 2px solid #2a2a5e;
+            padding-bottom: 15px;
+        }
+        .main-title span {
+            color: #f1c40f;
+            font-weight: 700;
+        }
+        .main-title small {
+            display: block;
+            font-size: 14px;
+            color: #666;
+            letter-spacing: 2px;
+            margin-top: 5px;
+            font-weight: 300;
+        }
+
+        /* ======================================================================
+           MÓDULOS
+           ====================================================================== */
+        .module {
+            background: #1a1a3e;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            border: 1px solid #2a2a5e;
+            overflow: hidden;
+            transition: all 0.3s ease;
+        }
+
+        .module-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 24px;
+            cursor: pointer;
+            user-select: none;
+            background: rgba(255, 255, 255, 0.03);
+            transition: background 0.3s;
+        }
+        .module-header:hover {
+            background: rgba(255, 255, 255, 0.06);
+        }
+        .module-header h2 {
+            font-size: 20px;
+            font-weight: 400;
+            letter-spacing: 1px;
+            color: #c0c0d0;
+        }
+        .module-header h2 i {
+            color: #f1c40f;
+            margin-right: 12px;
+        }
+        .module-header .toggle-icon {
+            font-size: 20px;
+            color: #888;
+            transition: transform 0.3s;
+        }
+        .module-header .toggle-icon.rotated {
+            transform: rotate(180deg);
+        }
+
+        .module-body {
+            padding: 20px 24px;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        .module-body.hidden {
+            max-height: 0 !important;
+            padding: 0 24px;
+            opacity: 0;
+        }
+
+        .theory-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .theory-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 12px;
+            padding: 18px;
+            border-left: 3px solid #f1c40f;
+            transition: all 0.3s;
+        }
+        .theory-card:hover {
+            background: rgba(255, 255, 255, 0.06);
+            transform: translateX(4px);
+        }
+        .theory-card h3 {
+            color: #f1c40f;
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            letter-spacing: 0.5px;
+        }
+        .theory-card p {
+            font-size: 13px;
+            line-height: 1.6;
+            color: #99aabb;
+        }
+        .theory-card .formula {
+            display: block;
+            background: #0a0a1a;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #f1c40f;
+            margin-top: 6px;
+            border: 1px solid #2a2a5e;
+        }
+        .theory-card .highlight {
+            color: #f1c40f;
+            font-weight: 600;
+        }
+
+        /* ======================================================================
+           CANVAS
+           ====================================================================== */
+        .canvas-wrapper {
+            background: #0a0a1a;
+            border-radius: 12px;
+            padding: 8px;
+            border: 1px solid #2a2a5e;
+            position: relative;
+        }
+
+        #galtonCanvas {
+            display: block;
+            width: 100%;
+            height: auto;
+            background: #0a0a1a;
+            border-radius: 8px;
+            cursor: crosshair;
+        }
+
+        /* ======================================================================
+           CONTROLES
+           ====================================================================== */
+        .controls-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 15px;
+        }
+
+        @media (max-width: 1100px) {
+            .controls-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        @media (max-width: 700px) {
+            .controls-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .control-module {
+            background: rgba(255, 255, 255, 0.02);
+            border-radius: 10px;
+            border: 1px solid #2a2a5e;
+            overflow: hidden;
+        }
+
+        .control-module-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 16px;
+            cursor: pointer;
+            background: rgba(255, 255, 255, 0.02);
+            transition: background 0.3s;
+        }
+        .control-module-header:hover {
+            background: rgba(255, 255, 255, 0.05);
+        }
+        .control-module-header h4 {
+            font-size: 14px;
+            font-weight: 400;
+            color: #99aabb;
+            letter-spacing: 0.5px;
+        }
+        .control-module-header h4 i {
+            color: #f1c40f;
+            margin-right: 8px;
+        }
+        .control-module-header .toggle-icon {
+            font-size: 14px;
+            color: #666;
+            transition: transform 0.3s;
+        }
+        .control-module-header .toggle-icon.rotated {
+            transform: rotate(180deg);
+        }
+
+        .control-module-body {
+            padding: 12px 16px;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        .control-module-body.hidden {
+            max-height: 0 !important;
+            padding: 0 16px;
+            opacity: 0;
+        }
+
+        .control-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 10px;
+            padding: 4px 0;
+        }
+        .control-row label {
+            font-size: 12px;
+            color: #8899aa;
+            min-width: 80px;
+            flex-shrink: 0;
+        }
+        .control-row input[type="range"] {
+            flex: 1;
+            height: 4px;
+            -webkit-appearance: none;
+            background: #2a2a5e;
+            border-radius: 2px;
+            outline: none;
+        }
+        .control-row input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #f1c40f;
+            cursor: pointer;
+            border: 2px solid #fff;
+        }
+        .control-row input[type="range"]::-moz-range-thumb {
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #f1c40f;
+            cursor: pointer;
+            border: 2px solid #fff;
+        }
+        .control-row .value-display {
+            font-size: 13px;
+            color: #f1c40f;
+            min-width: 50px;
+            text-align: right;
+            font-weight: 600;
+            font-family: 'Courier New', monospace;
+        }
+
+        .control-row input[type="color"] {
+            width: 40px;
+            height: 30px;
+            border: none;
+            border-radius: 4px;
+            background: transparent;
+            cursor: pointer;
+        }
+        .control-row input[type="color"]::-webkit-color-swatch-wrapper {
+            padding: 0;
+        }
+        .control-row input[type="color"]::-webkit-color-swatch {
+            border: 2px solid #2a2a5e;
+            border-radius: 4px;
+        }
+
+        .control-row input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
+            accent-color: #f1c40f;
+            cursor: pointer;
+        }
+
+        .control-row select {
+            background: #1a1a3e;
+            color: #e0e0e0;
+            border: 1px solid #2a2a5e;
+            border-radius: 6px;
+            padding: 4px 10px;
+            font-size: 12px;
+            cursor: pointer;
+            flex: 1;
+        }
+
+        .action-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 8px 0;
+        }
+
+        .btn {
+            padding: 8px 18px;
+            border: none;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: #2a2a5e;
+            color: #ccc;
+            letter-spacing: 0.3px;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+        }
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-primary {
+            background: #f1c40f;
+            color: #1a1a2e;
+        }
+        .btn-primary:hover {
+            background: #ffd700;
+        }
+
+        .btn-success {
+            background: #2ecc71;
+            color: #1a1a2e;
+        }
+        .btn-success:hover {
+            background: #58d68d;
+        }
+
+        .btn-danger {
+            background: #e74c3c;
+            color: #fff;
+        }
+        .btn-danger:hover {
+            background: #ff6b5a;
+        }
+
+        .btn-info {
+            background: #3498db;
+            color: #fff;
+        }
+        .btn-info:hover {
+            background: #5dade2;
+        }
+
+        .btn-purple {
+            background: #8e44ad;
+            color: #fff;
+        }
+        .btn-purple:hover {
+            background: #a569bd;
+        }
+
+        .btn-orange {
+            background: #e67e22;
+            color: #fff;
+        }
+        .btn-orange:hover {
+            background: #f39c12;
+        }
+
+        /* ======================================================================
+           STATS
+           ====================================================================== */
+        .stats-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px 30px;
+            padding: 12px 20px;
+            background: #0a0a1a;
+            border-radius: 10px;
+            margin-top: 15px;
+            border: 1px solid #2a2a5e;
+            font-size: 13px;
+            color: #8899aa;
+        }
+        .stats-bar .stat-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .stats-bar .stat-item .stat-value {
+            color: #f1c40f;
+            font-weight: 700;
+            font-family: 'Courier New', monospace;
+            font-size: 15px;
+        }
+        .stats-bar .stat-item .stat-label {
+            color: #667788;
+        }
+
+        /* ======================================================================
+           RESPONSIVIDADE
+           ====================================================================== */
+        @media (max-width: 600px) {
+            .main-container {
+                padding: 12px;
+            }
+            .main-title {
+                font-size: 22px;
+            }
+            .theory-grid {
+                grid-template-columns: 1fr;
+            }
+            .controls-grid {
+                grid-template-columns: 1fr;
+            }
+            .control-row {
+                flex-wrap: wrap;
+            }
+            .control-row label {
+                min-width: 60px;
+                font-size: 11px;
+            }
+            .btn {
+                padding: 6px 12px;
+                font-size: 11px;
+            }
+            .stats-bar {
+                gap: 10px;
+                font-size: 11px;
+                padding: 10px;
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0a0a1a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2a2a5e;
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3a3a7e;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+
+        <div class="main-title">
+            ⚡ Tábua de <span>Galton</span>
+            <small>Simulação Física de Alta Fidelidade · Controle Total</small>
+        </div>
+
+        <!-- ================================================================
+        TEORIA - CARDS COMPLETOS (14 CARDS)
+        ================================================================ -->
+        <div class="module" id="theoryModule">
+            <div class="module-header" data-target="theoryBody">
+                <h2><i>📖</i> Teoria da Simulação Física / Realista</h2>
+                <span class="toggle-icon" id="theoryToggle">▼</span>
+            </div>
+            <div class="module-body" id="theoryBody">
+                <div class="theory-grid">
+
+                    <div class="theory-card">
+                        <h3>1. Geometria Baseada em Linhas</h3>
+                        <p>O número de linhas define a estrutura da tábua. Cada linha tem um número crescente de pinos, formando a clássica <span class="highlight">disposição triangular</span>. O espaçamento é calculado automaticamente para preencher a área útil.</p>
+                        <span class="formula">Linhas = 6 a 18 · Pinos = soma de 1 a N</span>
+                    </div>
+
+                    <div class="theory-card">
+                        <h3>2. Geometria Independente da Bolinha</h3>
+                        <p>O <span class="highlight">raio da bolinha</span> NÃO afeta a posição dos pinos. A geometria da tábua é calculada puramente pela área e número de linhas. O raio da bolinha é usado apenas na física de colisões.</p>
+                        <span class="formula">Pinos posicionados pela área · Bolinha colide com pinos</span>
+                    </div>
+
+                    <div class="theory-card">
+                        <h3>3. Distribuição Aleatória de Pinos</h3>
+                        <p>Opção de posicionar os pinos de forma <span class="highlight">aleatória</span> dentro da área útil, em vez do padrão triangular. Garante que não haja sobreposição, usando distância mínima baseada no <span class="highlight">raio da bolinha + raio do pino</span>.</p>
+                        <span class="formula">Distância mínima = (r<sub>bola</sub> + r<sub>pino</sub>) × 1.8</span>
+                    </div>
+
+                    <div class="theory-card">
+                        <h3>4. Desalinhamento (Jitter) dos Pinos</h3>
+                        <p>Adiciona um pequeno <span class="highlight">deslocamento aleatório</span> à posição de cada pino, simulando imperfeições de fabricação. Valor máximo configurável de 0 a 5 pixels.</p>
+                        <span class="formula">x' = x + (rand() - 0.5) × 2 × jitter</span>
+                    </div>
+
+                    <div class="theory-card">
+                        <h3>5. Número de Compartimentos</h3>
+                        <p>Define quantos <span class="highlight">compartimentos (bins)</span> para a contagem das bolinhas. Padrão: 25. Controla a resolução do histograma.</p>
+                        <span class="formula">Bins = 15 a 40 · Padrão: 25</span>
+                    </div>
+
+                    <div class="theory-card">
+                        <h3>6. Bico de Funil com Vazão Estocástica</h3>
+                        <p>As bolinhas são introduzidas através de um <span class="highlight">bico de funil</span> com múltiplas perturbações: posição (σ=0-30px), velocidade (σᵥ=0-5), spin (ω₀=0-10 rad/s) e ângulo (θ=±10°).</p>
+                        <span class="formula">Δx = ±σ·rand() · Δv = ±σᵥ·rand() · ω = ω₀ ± σω·rand() · θ = ±10°·rand()</span>
+                    </div>
+
+                    <div class="theory-card">
+                        <h3>7. Tábua de Pinos em Formato Triangular</h3>
+                        <p>Os pinos são dispostos em <span class="highlight">formato triangular</span> (Piramidal). O modo "Retangular" mantém a mesma forma triangular, apenas com <span class="highlight">mais pinos por linha</span>.</p>
+                        <span class="formula">Pinos/linha = row + 1 (triangular) · ou row + 1 + offset (retangular)</span>
+                    </div>
+
+                    <div class="theory-card">
+                        <h3>8. Gap Funil-Grid Configurável</h3>
+                        <p>Espaço vazio entre a saída do funil e o primeiro pino. Controla a <span class="highlight">altura de queda livre</span> antes da primeira colisão.</p>
+                        <span class="formula">Gap = 10-150px · Padrão: 60px</span>
+                    </div>
+
+                    <div class="theory-card">
+                        <h3>9. Tempo de Remoção no Chão</h3>
+                        <p>As bolinhas, ao atingirem o chão, esperam um <span class="highlight">tempo de estabilização</span> (0.05-2.0 segundos) antes de serem removidas. Padrão: 0.05s.</p>
+                        <span class="formula">T<sub>remoção</sub> = 0.05 - 2.0 segundos · Padrão: 0.05s</span>
+                    </div>
+
+                    <div class="theory-card">
+                        <h3>10. Massa da Bolinha (Metal Pesado)</h3>
+                        <p>Bolinhas de <span class="highlight">metal pesado</span> com densidade configurável (ρ=1-30, padrão 7.8 para aço). Massa com variação aleatória de até 30%.</p>
+                        <span class="formula">m = ρ · r² · 0.8 · (1 + δ·rand())</span>
+                    </div>
+
+                    <div class="theory-card">
+                        <h3>11. Mecânica de Colisões com Restituição</h3>
+                        <p>Colisões <span class="highlight">elásticas com perda controlada</span> com pinos e paredes. Coeficiente de restituição (e) ajusta a energia refletida.</p>
+                        <span class="formula">v<sub>n</sub>' = -e · v<sub>n</sub> · e ∈ [0.10, 0.80]</span>
+                    </div>
+
+                    <div class="theory-card">
+                        <h3>12. Momento Angular (Spin) e Torque</h3>
+                        <p>Bolinhas esféricas com <span class="highlight">momento de inércia</span> I = (2/5)·m·r². Colisões excêntricas geram torque.</p>
+                        <span class="formula">τ = r × F · I·α = τ</span>
+                    </div>
+
+                    <div class="theory-card">
+                        <h3>13. Atrito de Rolamento e Amortecimento</h3>
+                        <p>Força resistiva que reduz gradualmente a velocidade, simulando <span class="highlight">perda de energia</span> por deformação e resistência do ar.</p>
+                        <span class="formula">F<sub>rol</sub> = μ<sub>r</sub> · m · g · F<sub>arrasto</sub> = -b·v</span>
+                    </div>
+
+                    <div class="theory-card">
+                        <h3>14. Sistema de Vazão Contínua</h3>
+                        <p>As bolinhas, ao atingirem o <span class="highlight">chão</span> e após o tempo de estabilização, são <span class="highlight">automaticamente removidas</span>, mantendo a tela limpa.</p>
+                        <span class="formula">Bola no chão + T<sub>estabilização</sub> → Removida · Contabilizada</span>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ================================================================
+        SIMULAÇÃO GRÁFICA
+        ================================================================ -->
+        <div class="module">
+            <div class="module-header">
+                <h2><i>🎯</i> Simulação Gráfica</h2>
+                <span style="color:#666;font-size:13px;">Clique na tábua para soltar bolinhas</span>
+            </div>
+            <div class="module-body" style="padding:8px;">
+                <div class="canvas-wrapper">
+                    <canvas id="galtonCanvas" width="1100" height="750"></canvas>
+                </div>
+
+                <div class="stats-bar">
+                    <div class="stat-item">
+                        <span class="stat-label">🟡 Bolas Ativas:</span>
+                        <span class="stat-value" id="ballCount">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">📊 Compartimentos:</span>
+                        <span class="stat-value" id="binCount">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">📈 Total Contabilizado:</span>
+                        <span class="stat-value" id="totalCount">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">⚡ FPS:</span>
+                        <span class="stat-value" id="fpsDisplay">60</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">⏱ Tempo:</span>
+                        <span class="stat-value" id="timeDisplay">0.0s</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">📌 Pinos:</span>
+                        <span class="stat-value" id="pinCount">0</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-label">📏 Densidade:</span>
+                        <span class="stat-value" id="densityDisplay">0.00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ================================================================
+        CONTROLES
+        ================================================================ -->
+        <div class="module">
+            <div class="module-header" data-target="controlsBody">
+                <h2><i>⚙</i> Parâmetros de Controle</h2>
+                <span class="toggle-icon" id="controlsToggle">▼</span>
+            </div>
+            <div class="module-body" id="controlsBody">
+
+                <div class="controls-grid">
+
+                    <!-- ===== FÍSICA ===== -->
+                    <div class="control-module">
+                        <div class="control-module-header" data-target="physicsControls">
+                            <h4><i>⚡</i> Física</h4>
+                            <span class="toggle-icon">▼</span>
+                        </div>
+                        <div class="control-module-body" id="physicsControls">
+                            <div class="control-row">
+                                <label>Velocidade Queda</label>
+                                <input type="range" id="speedSlider" min="0.1" max="20.0" value="3.0" step="0.1">
+                                <span class="value-display" id="speedValue">3.0×</span>
+                            </div>
+                            <div class="control-row">
+                                <label>Gravidade (m/s²)</label>
+                                <input type="range" id="gravitySlider" min="0" max="100" value="25" step="0.5">
+                                <span class="value-display" id="gravityValue">25.0</span>
+                            </div>
+                            <div class="control-row">
+                                <label>Restituição (Pinos)</label>
+                                <input type="range" id="restitutionSlider" min="0.10" max="0.80" value="0.40" step="0.01">
+                                <span class="value-display" id="restitutionValue">0.40</span>
+                            </div>
+                            <div class="control-row">
+                                <label>Restituição (Paredes)</label>
+                                <input type="range" id="wallRestitutionSlider" min="0.10" max="0.80" value="0.35" step="0.01">
+                                <span class="value-display" id="wallRestitutionValue">0.35</span>
+                            </div>
+                            <div class="control-row">
+                                <label>Atrito Rolamento</label>
+                                <input type="range" id="frictionSlider" min="0.000" max="0.200" value="0.060" step="0.001">
+                                <span class="value-display" id="frictionValue">0.060</span>
+                            </div>
+                            <div class="control-row">
+                                <label>Amortecimento (Drag)</label>
+                                <input type="range" id="dragSlider" min="0.980" max="1.000" value="0.997" step="0.0001">
+                                <span class="value-display" id="dragValue">0.9970</span>
+                            </div>
+                            <div class="control-row">
+                                <label>Colisões entre Bolas</label>
+                                <input type="checkbox" id="ballCollisionCheck" checked>
+                                <span style="font-size:12px;color:#667788;">Ativado</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ===== MASSA E PERTURBAÇÕES ===== -->
+                    <div class="control-module">
+                        <div class="control-module-header" data-target="massControls">
+                            <h4><i>⚖️</i> Massa & Perturbações</h4>
+                            <span class="toggle-icon">▼</span>
+                        </div>
+                        <div class="control-module-body" id="massControls">
+                            <div class="control-row">
+                                <label>Densidade (ρ)</label>
+                                <input type="range" id="densitySlider" min="1" max="30" value="7.8" step="0.1">
+                                <span class="value-display" id="densityValue">7.8</span>
+                            </div>
+                            <div class="control-row">
+                                <label>Variação de Massa</label>
+                                <input type="range" id="massVariationSlider" min="0" max="30" value="10" step="1">
+                                <span class="value-display" id="massVariationValue">10%</span>
+                            </div>
+                            <div class="control-row">
+                                <label>Perturbação Posição</label>
+                                <input type="range" id="perturbationSlider" min="0" max="30" value="10" step="0.5">
+                                <span class="value-display" id="perturbationValue">10.0</span>
+                            </div>
+                            <div class="control-row">
+                                <label>Perturbação Velocidade</label>
+                                <input type="range" id="velPerturbationSlider" min="0" max="5" value="1.5" step="0.1">
+                                <span class="value-display" id="velPerturbationValue">1.5</span>
+                            </div>
+                            <div class="control-row">
+                                <label>Perturbação Ângulo</label>
+                                <input type="range" id="anglePerturbationSlider" min="0" max="10" value="5" step="0.5">
+                                <span class="value-display" id="anglePerturbationValue">5.0°</span>
+                            </div>
+                            <div class="control-row">
+                                <label>Spin Inicial</label>
+                                <input type="range" id="initialSpinSlider" min="0" max="10" value="3" step="0.1">
+                                <span class="value-display" id="initialSpinValue">3.0</span>
+                            </div>
+                            <div class="control-row">
+                                <label>Variação do Spin</label>
+                                <input type="range" id="spinVariationSlider" min="0" max="5" value="1.5" step="0.1">
+                                <span class="value-display" id="spinVariationValue">1.5</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ===== GEOMETRIA ===== -->
+                    <div class="control-module">
+                        <div class="control-module-header" data-target="geometryControls">
+                            <h4><i>📐</i> Geometria</h4>
+                            <span class="toggle-icon">▼</span>
+                        </div>
+                        <div class="control-module-body" id="geometryControls">
+                            <div class="control-row">
+                                <label>Tipo de Tábua</label>
+                                <select id="boardType">
+                                    <option value="triangular">Triangular (Galton)</option>
+                                    <option value="rectangular">Retangular (Mais Pinos)</option>
+                                </select>
+                            </div>
+                            <div class="control-row">
+                                <label>Raio da Bolinha</label>
+                                <input type="range" id="ballRadiusSlider" min="2" max="15" value="6" step="0.5">
+                                <span class="value-display" id="ballRadiusValue">6.0</span>
+                            </div>
+                            <div class="control-row">
+                                <label>Raio do Pino</label>
+                                <input type="range" id="pinRadiusSlider" min="1" max="20" value="7" step="0.5">
+                                <span class="value-display" id="pinRadiusValue">7.0</span>
+                            </div>
+                            <div class="control-row" style="border-top:1px solid #2a2a5e; padding-top:10px; margin-top:5px;">
+                                <label style="color:#f1c40f;">📏 Nº de Linhas</label>
+                                <input type="range" id="rowsSlider" min="6" max="18" value="12" step="1">
+                                <span class="value-display" id="rowsValue">12</span>
+                            </div>
+                            <div class="control-row">
+                                <label>Nº de Colunas (Retangular)</label>
+                                <input type="range" id="colsSlider" min="6" max="18" value="12" step="1">
+                                <span class="value-display" id="colsValue">12</span>
+                            </div>
+                            <div class="control-row">
+                                <label>Nº de Compartimentos</label>
+                                <input type="range" id="binCountSlider" min="15" max="40" value="25" step="1">
+                                <span class="value-display" id="binCountValue">25</span>
+                            </div>
+                            <div style="font-size:11px;color:#667788;padding:0 4px 8px 4px;margin-top:-4px;">
+                                Resolução do histograma. Padrão: 25.
+                            </div>
+                            <div class="control-row" style="border-top:1px solid #2a2a5e; padding-top:10px; margin-top:5px;">
+                                <label style="color:#f1c40f;">🎲 Pinos Aleatórios</label>
+                                <input type="checkbox" id="randomPinsCheck">
+                                <span style="font-size:12px;color:#667788;">Ativar distribuição aleatória</span>
+                            </div>
+                            <div style="font-size:11px;color:#667788;padding:0 4px 8px 8px;margin-top:-4px;">
+                                Posiciona os pinos aleatoriamente, com distância mínima = (raio_bola + raio_pino) × 1.8
+                            </div>
+                            <div class="control-row">
+                                <label style="color:#f1c40f;">🔀 Desalinhamento (px)</label>
+                                <input type="range" id="jitterSlider" min="0" max="5" value="0" step="0.1">
+                                <span class="value-display" id="jitterValue">0.0</span>
+                            </div>
+                            <div style="font-size:11px;color:#667788;padding:0 4px 8px 8px;margin-top:-4px;">
+                                Desloca cada pino aleatoriamente em X e Y (máximo configurável).
+                            </div>
+                            <div class="control-row">
+                                <label>Gap Funil-Grid</label>
+                                <input type="range" id="funnelGapSlider" min="10" max="150" value="60" step="2">
+                                <span class="value-display" id="funnelGapValue">60</span>
+                            </div>
+                            <div class="control-row">
+                                <label>Altura do Chão</label>
+                                <input type="range" id="floorHeightSlider" min="30" max="150" value="80" step="2">
+                                <span class="value-display" id="floorHeightValue">80</span>
+                            </div>
+                            <div class="control-row">
+                                <label>Margem Lateral</label>
+                                <input type="range" id="marginSideSlider" min="20" max="80" value="35" step="1">
+                                <span class="value-display" id="marginSideValue">35</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ===== SOLTURA E REMOÇÃO ===== -->
+                    <div class="control-module">
+                        <div class="control-module-header" data-target="dropControls">
+                            <h4><i>🔄</i> Soltura & Remoção</h4>
+                            <span class="toggle-icon">▼</span>
+                        </div>
+                        <div class="control-module-body" id="dropControls">
+                            <div class="control-row">
+                                <label>Intervalo Soltura (ms)</label>
+                                <input type="range" id="dropIntervalSlider" min="10" max="500" value="80" step="5">
+                                <span class="value-display" id="dropIntervalValue">80</span>
+                            </div>
+                            <div class="control-row">
+                                <label>Máx. Bolas Ativas</label>
+                                <input type="range" id="maxBallsSlider" min="50" max="5000" value="500" step="10">
+                                <span class="value-display" id="maxBallsValue">500</span>
+                            </div>
+                            <div class="control-row">
+                                <label>Taxa de Soltura</label>
+                                <input type="range" id="releaseRateSlider" min="1" max="30" value="5" step="1">
+                                <span class="value-display" id="releaseRateValue">5</span>
+                            </div>
+                            <div class="control-row" style="border-top:1px solid #2a2a5e; padding-top:10px; margin-top:5px;">
+                                <label style="color:#f1c40f;">⏱ Tempo Remoção</label>
+                                <input type="range" id="removalTimeSlider" min="0.05" max="2.0" value="0.05" step="0.01">
+                                <span class="value-display" id="removalTimeValue">0.05s</span>
+                            </div>
+                            <div style="font-size:11px;color:#667788;padding:0 4px 8px 4px;">
+                                Tempo que a bola fica no chão antes de ser removida (em segundos)
+                            </div>
+                            <div class="action-buttons">
+                                <button class="btn btn-primary" id="dropBtn">🔽 Soltar 1</button>
+                                <button class="btn btn-success" id="dropBatchBtn">🔄 Soltar 10</button>
+                                <button class="btn btn-purple" id="dropBatch50Btn">🚀 Soltar 50</button>
+                                <button class="btn btn-info" id="autoDropBtn">▶ Automático</button>
+                                <button class="btn btn-danger" id="resetBtn">🗑 Reset</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ===== VISUAL ===== -->
+                    <div class="control-module">
+                        <div class="control-module-header" data-target="visualControls">
+                            <h4><i>🎨</i> Visual</h4>
+                            <span class="toggle-icon">▼</span>
+                        </div>
+                        <div class="control-module-body" id="visualControls">
+                            <div class="control-row">
+                                <label>Cor das Bolas</label>
+                                <input type="color" id="ballColor" value="#f1c40f">
+                            </div>
+                            <div class="control-row">
+                                <label>Cor dos Pinos</label>
+                                <input type="color" id="pinColor" value="#4a6fa5">
+                            </div>
+                            <div class="control-row">
+                                <label>Cor do Fundo</label>
+                                <input type="color" id="bgColor" value="#0a0a1a">
+                            </div>
+                            <div class="control-row">
+                                <label>Cor do Funil</label>
+                                <input type="color" id="funnelColor" value="#2a2a5e">
+                            </div>
+                            <div class="control-row">
+                                <label>Cor do Chão</label>
+                                <input type="color" id="floorColor" value="#1a2a3a">
+                            </div>
+                            <div class="control-row">
+                                <label>Brilho das Bolas</label>
+                                <input type="range" id="glowSlider" min="0" max="30" value="15" step="1">
+                                <span class="value-display" id="glowValue">15</span>
+                            </div>
+                            <div class="control-row">
+                                <label>Mostrar Grade</label>
+                                <input type="checkbox" id="showGrid" checked>
+                            </div>
+                            <div class="control-row">
+                                <label>Mostrar Rastro</label>
+                                <input type="checkbox" id="showTrail" checked>
+                            </div>
+                            <div class="control-row">
+                                <label>Mostrar Barras</label>
+                                <input type="checkbox" id="showBars" checked>
+                            </div>
+                            <div class="action-buttons">
+                                <button class="btn btn-orange" id="exportBtn">📤 Exportar Dados</button>
+                                <button class="btn btn-info" id="screenshotBtn">📸 Screenshot</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ===== PAREDES ===== -->
+                    <div class="control-module">
+                        <div class="control-module-header" data-target="wallControls">
+                            <h4><i>🧱</i> Paredes Confinantes</h4>
+                            <span class="toggle-icon">▼</span>
+                        </div>
+                        <div class="control-module-body" id="wallControls">
+                            <div class="control-row">
+                                <label>Espessura Parede</label>
+                                <input type="range" id="wallThicknessSlider" min="2" max="15" value="6" step="0.5">
+                                <span class="value-display" id="wallThicknessValue">6.0</span>
+                            </div>
+                            <div class="control-row">
+                                <label>Mostrar Paredes</label>
+                                <input type="checkbox" id="showWalls" checked>
+                            </div>
+                            <div class="control-row">
+                                <label>Cor das Paredes</label>
+                                <input type="color" id="wallColor" value="#2a2a5e">
+                            </div>
+                            <div class="control-row">
+                                <label>Paredes com Atrito</label>
+                                <input type="checkbox" id="wallFriction" checked>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- ================================================================
+    JAVASCRIPT
+    ================================================================ -->
+    <script>
+        /**
+         * ======================================================================
+         * CONFIGURAÇÕES
+         * ======================================================================
+         */
+        const CONFIG = {
+            speed: 3.0,
+            gravity: 25.0,
+            restitution: 0.40,
+            wallRestitution: 0.35,
+            rollingFriction: 0.060,
+            drag: 0.997,
+            ballCollision: true,
+
+            density: 7.8,
+            massVariation: 0.10,
+            perturbation: 10.0,
+            velPerturbation: 1.5,
+            anglePerturbation: 5.0,
+            initialSpin: 3.0,
+            spinVariation: 1.5,
+
+            ballRadius: 6,
+            pinRadius: 7,
+            rows: 12,
+            cols: 12,
+            boardType: 'triangular',
+            targetBins: 25,
+            randomPins: false,
+            jitter: 0,
+            funnelGap: 60,
+            floorHeight: 80,
+            marginSide: 35,
+            marginTop: 55,
+
+            dropInterval: 80,
+            maxBalls: 500,
+            releaseRate: 5,
+            removalTime: 0.05,
+
+            ballColor: '#f1c40f',
+            pinColor: '#4a6fa5',
+            bgColor: '#0a0a1a',
+            funnelColor: '#2a2a5e',
+            floorColor: '#1a2a3a',
+            wallColor: '#2a2a5e',
+            glowIntensity: 15,
+            showGrid: true,
+            showTrail: true,
+            showBars: true,
+            showWalls: true,
+            wallThickness: 6,
+            wallFriction: true,
+
+            get ballGlow() { return this.ballColor + '44'; },
+            get pinGlow() { return this.pinColor + '33'; }
+        };
+
+        /**
+         * ======================================================================
+         * CANVAS
+         * ======================================================================
+         */
+        const canvas = document.getElementById('galtonCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const W = 1100;
+        const H = 750;
+        canvas.width = W;
+        canvas.height = H;
+
+        let MARGIN = { top: CONFIG.marginTop, bottom: CONFIG.floorHeight + 30, left: CONFIG.marginSide, right: CONFIG
+                .marginSide };
+
+        /**
+         * ======================================================================
+         * CLASSE BALL
+         * ======================================================================
+         */
+        class Ball {
+            constructor(x, y, radius, density, massVariation, spin = 0) {
+                this.radius = radius;
+
+                const massFactor = 1 + (Math.random() - 0.5) * 2 * massVariation;
+                this.mass = density * radius * radius * 0.8 * massFactor;
+
+                this.x = x;
+                this.y = y;
+                this.vx = (Math.random() - 0.5) * 0.5;
+                this.vy = 0;
+                this.angle = Math.random() * 2 * Math.PI;
+                this.angularVelocity = (Math.random() - 0.5) * spin * 2;
+                this.active = true;
+                this.binIndex = -1;
+                this.trail = [];
+                this.maxTrail = 10;
+                this.inertia = 0.4 * this.mass * radius * radius;
+                this.massFactor = massFactor;
+                this.removed = false;
+                this.onFloor = false;
+                this.onFloorTimer = 0;
+            }
+
+            update(dt, gravity, drag, speed) {
+                if (!this.active || this.removed) return;
+
+                const speedFactor = speed;
+                this.vy += gravity * dt * speedFactor;
+                this.vx *= Math.pow(drag, speedFactor * 0.5);
+                this.vy *= Math.pow(drag, speedFactor * 0.5);
+
+                this.x += this.vx * dt * speedFactor;
+                this.y += this.vy * dt * speedFactor;
+                this.angle += this.angularVelocity * dt * speedFactor;
+
+                if (CONFIG.showTrail && !this.onFloor) {
+                    this.trail.push({ x: this.x, y: this.y });
+                    if (this.trail.length > this.maxTrail) this.trail.shift();
+                }
+            }
+
+            applyRollingFriction(friction, speed) {
+                if (this.removed) return;
+                const speedFactor = speed;
+                const speedVal = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                if (speedVal < 0.001) return;
+                const frictionForce = friction * 9.8 * this.mass;
+                const decel = frictionForce / this.mass;
+                const dt = 1 / 60;
+                const speedReduction = decel * dt * speedFactor;
+                if (speedVal > speedReduction) {
+                    const ratio = (speedVal - speedReduction) / speedVal;
+                    this.vx *= ratio;
+                    this.vy *= ratio;
+                } else {
+                    this.vx = 0;
+                    this.vy = 0;
+                }
+            }
+
+            isNearlyStill() {
+                const speed = Math.sqrt(this.vx * this.vx + this.vy * this.vy);
+                return speed < 0.05 && Math.abs(this.angularVelocity) < 0.01;
+            }
+        }
+
+        /**
+         * ======================================================================
+         * GERENCIADOR DA TÁBUA - ÁREA FIXA, PINOS BASEADOS EM LINHAS
+         * ======================================================================
+         */
+        class GaltonBoard {
+            constructor() {
+                this.balls = [];
+                this.pins = [];
+                this.bins = [];
+                this.running = false;
+                this.autoDrop = false;
+                this.dropTimer = 0;
+                this.ballCounter = 0;
+                this.totalCounted = 0;
+                this.simulationTime = 0;
+                this.fps = 60;
+                this.frameCount = 0;
+                this.fpsTime = 0;
+
+                this.initGeometry();
+                this.lastTime = performance.now();
+                this.loop = this.loop.bind(this);
+                requestAnimationFrame(this.loop);
+            }
+
+            // ================================================================
+            // GEOMETRIA - ÁREA FIXA, ESPAÇAMENTO BASEADO EM LINHAS
+            // ================================================================
+            initGeometry() {
+                this.pins = [];
+                this.bins = [];
+
+                const rows = CONFIG.rows;
+                const cols = CONFIG.cols;
+                const pinR = CONFIG.pinRadius;
+                const targetBins = CONFIG.targetBins;
+                const randomPins = CONFIG.randomPins;
+                const jitter = CONFIG.jitter;
+
+                // DEFINE A ÁREA ÚTIL FIXA
+                MARGIN.top = CONFIG.marginTop;
+                MARGIN.bottom = CONFIG.floorHeight + 30;
+                MARGIN.left = CONFIG.marginSide;
+                MARGIN.right = CONFIG.marginSide;
+
+                const usableWidth = W - MARGIN.left - MARGIN.right - 20;
+                const usableHeight = H - MARGIN.top - MARGIN.bottom - CONFIG.funnelGap;
+
+                const wallMargin = 15;
+                const pinAreaLeft = MARGIN.left + wallMargin;
+                const pinAreaRight = W - MARGIN.right - wallMargin;
+                const pinAreaWidth = pinAreaRight - pinAreaLeft;
+                const pinAreaHeight = usableHeight;
+
+                const area = pinAreaWidth * pinAreaHeight;
+
+                let totalPinsGenerated = 0;
+
+                // ============================================================
+                // MODO 1: PADRÃO TRIANGULAR (OU RETANGULAR) COM JITTER
+                // ============================================================
+                if (!randomPins) {
+                    // Calcula espaçamento baseado no número de linhas e largura
+                    const numCols = CONFIG.boardType === 'rectangular' ? cols : rows + 1;
+                    const spacingX = pinAreaWidth / (numCols + 1);
+                    const spacingY = pinAreaHeight / (rows + 0.5);
+                    const finalSpacingX = spacingX;
+                    const finalSpacingY = spacingY;
+
+                    for (let row = 0; row < rows; row++) {
+                        const numPins = CONFIG.boardType === 'rectangular' ?
+                            Math.min(numCols, row + 1 + Math.floor(rows / 3)) :
+                            row + 1;
+
+                        const rowWidth = numPins * finalSpacingX;
+                        const offsetX = (pinAreaWidth - rowWidth) / 2 + pinAreaLeft;
+                        const baseY = MARGIN.top + CONFIG.funnelGap + row * finalSpacingY + finalSpacingY / 2;
+
+                        for (let col = 0; col < numPins; col++) {
+                            let x = offsetX + col * finalSpacingX + finalSpacingX / 2;
+                            let y = baseY;
+
+                            if (jitter > 0) {
+                                const dx = (Math.random() - 0.5) * 2 * jitter;
+                                const dy = (Math.random() - 0.5) * 2 * jitter;
+                                x += dx;
+                                y += dy;
+                                x = Math.max(pinAreaLeft + pinR, Math.min(pinAreaRight - pinR, x));
+                                y = Math.max(MARGIN.top + CONFIG.funnelGap + pinR, Math.min(MARGIN.top + CONFIG
+                                    .funnelGap + pinAreaHeight - pinR, y));
+                            }
+
+                            this.pins.push({ x, y, radius: pinR, row, col });
+                            totalPinsGenerated++;
+                        }
+                    }
+                } else {
+                    // ============================================================
+                    // MODO 2: PINOS ALEATÓRIOS
+                    // ============================================================
+                    const ballR = CONFIG.ballRadius;
+                    const minDist = (ballR + pinR) * 1.8;
+                    const maxAttempts = 10000;
+                    let placed = 0;
+
+                    const cellSize = minDist;
+                    const gridCols = Math.ceil(pinAreaWidth / cellSize) + 1;
+                    const gridRows = Math.ceil(pinAreaHeight / cellSize) + 1;
+                    const grid = new Array(gridCols * gridRows).fill(null).map(() => []);
+
+                    function getGridIndex(x, y) {
+                        const col = Math.floor((x - pinAreaLeft) / cellSize);
+                        const row = Math.floor((y - (MARGIN.top + CONFIG.funnelGap)) / cellSize);
+                        return col + row * gridCols;
+                    }
+
+                    function isOverlapping(x, y, r) {
+                        const cx = Math.floor((x - pinAreaLeft) / cellSize);
+                        const cy = Math.floor((y - (MARGIN.top + CONFIG.funnelGap)) / cellSize);
+                        for (let dx = -1; dx <= 1; dx++) {
+                            for (let dy = -1; dy <= 1; dy++) {
+                                const checkX = cx + dx;
+                                const checkY = cy + dy;
+                                if (checkX < 0 || checkX >= gridCols || checkY < 0 || checkY >= gridRows) continue;
+                                const idx = checkX + checkY * gridCols;
+                                for (const p of grid[idx]) {
+                                    const dx2 = x - p.x;
+                                    const dy2 = y - p.y;
+                                    if (dx2 * dx2 + dy2 * dy2 < (minDist) * (minDist)) {
+                                        return true;
+                                    }
+                                }
+                            }
+                        }
+                        return false;
+                    }
+
+                    const targetPins = CONFIG.boardType === 'rectangular' ?
+                        rows * cols :
+                        (rows * (rows + 1)) / 2;
+
+                    while (placed < targetPins && placed < 20000) {
+                        let found = false;
+                        for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                            let x = pinAreaLeft + Math.random() * pinAreaWidth;
+                            let y = MARGIN.top + CONFIG.funnelGap + Math.random() * pinAreaHeight;
+
+                            if (jitter > 0) {
+                                const dx = (Math.random() - 0.5) * 2 * jitter;
+                                const dy = (Math.random() - 0.5) * 2 * jitter;
+                                x += dx;
+                                y += dy;
+                                x = Math.max(pinAreaLeft + pinR, Math.min(pinAreaRight - pinR, x));
+                                y = Math.max(MARGIN.top + CONFIG.funnelGap + pinR, Math.min(MARGIN.top + CONFIG
+                                    .funnelGap + pinAreaHeight - pinR, y));
+                            }
+
+                            if (!isOverlapping(x, y, pinR)) {
+                                const pin = { x, y, radius: pinR, row: -1, col: -1 };
+                                this.pins.push(pin);
+                                const idx = getGridIndex(x, y);
+                                grid[idx].push(pin);
+                                placed++;
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (!found) {
+                            console.warn('Não foi possível posicionar todos os pinos. Colocados: ' + placed +
+                                ' de ' + targetPins);
+                            break;
+                        }
+                    }
+                    totalPinsGenerated = placed;
+                }
+
+                // BINS
+                let binCount = Math.min(Math.max(targetBins, 15), 40);
+                const binWidth = (pinAreaWidth - 10) / binCount;
+                const binStartX = pinAreaLeft + 5;
+
+                for (let i = 0; i < binCount; i++) {
+                    const x = binStartX + i * binWidth;
+                    this.bins.push({
+                        x,
+                        y: H - MARGIN.bottom + 12,
+                        width: binWidth,
+                        height: MARGIN.bottom - 20,
+                        count: 0,
+                        index: i
+                    });
+                }
+
+                this.binCount = binCount;
+                this.binWidth = binWidth;
+                this.area = area;
+                this.density = totalPinsGenerated / area;
+
+                document.getElementById('binCount').textContent = binCount;
+                document.getElementById('pinCount').textContent = totalPinsGenerated;
+                document.getElementById('densityDisplay').textContent = (this.density * 1000).toFixed(2) + '/kpx²';
+
+                console.log('Geometria recalculada: pinos=' + totalPinsGenerated + ', random=' + randomPins +
+                    ', jitter=' + jitter + ', rows=' + rows);
+            }
+
+            // ================================================================
+            // SOLTAR BOLINHA
+            // ================================================================
+            dropBall() {
+                if (this.balls.length >= CONFIG.maxBalls) return;
+
+                const radius = CONFIG.ballRadius;
+                const funnelWidth = CONFIG.funnelWidth || 3 * radius;
+
+                const centerX = W / 2;
+
+                const posPerturb = CONFIG.perturbation;
+                const xOffset = (Math.random() - 0.5) * posPerturb * 0.5;
+                const clampedX = Math.max(-funnelWidth / 2, Math.min(funnelWidth / 2, xOffset));
+                const x = centerX + clampedX;
+
+                const velPert = CONFIG.velPerturbation;
+                const vxPerturb = (Math.random() - 0.5) * velPert;
+                const vyPerturb = -Math.random() * velPert * 0.2;
+
+                const anglePert = CONFIG.anglePerturbation * Math.PI / 180;
+                const angleOffset = (Math.random() - 0.5) * anglePert;
+                const vxAngle = Math.sin(angleOffset) * 0.5;
+                const vyAngle = -Math.cos(angleOffset) * 0.5;
+
+                const spin = CONFIG.initialSpin + (Math.random() - 0.5) * CONFIG.spinVariation;
+
+                const y = MARGIN.top - radius - 2;
+
+                const ball = new Ball(x, y, radius, CONFIG.density, CONFIG.massVariation, spin);
+                ball.vx = vxPerturb + vxAngle * 0.3;
+                ball.vy = vyPerturb + vyAngle * 0.3;
+
+                this.balls.push(ball);
+                this.ballCounter++;
+                this.updateStats();
+            }
+
+            // ================================================================
+            // FÍSICA DE COLISÕES
+            // ================================================================
+            resolveCollisions() {
+                const restitution = CONFIG.restitution;
+                const wallRestitution = CONFIG.wallRestitution;
+                const friction = CONFIG.rollingFriction;
+                const speed = CONFIG.speed;
+                const removalTime = CONFIG.removalTime;
+
+                const wallThickness = CONFIG.wallThickness;
+                const wallLeft = MARGIN.left + wallThickness;
+                const wallRight = W - MARGIN.right - wallThickness;
+                const floorY = H - MARGIN.bottom + 10;
+
+                for (let subIter = 0; subIter < 5; subIter++) {
+                    for (let i = 0; i < this.balls.length; i++) {
+                        const ball = this.balls[i];
+                        if (!ball.active || ball.removed) continue;
+
+                        for (const pin of this.pins) {
+                            const dx = ball.x - pin.x;
+                            const dy = ball.y - pin.y;
+                            const dist = Math.sqrt(dx * dx + dy * dy);
+                            const minDist = ball.radius + pin.radius;
+
+                            if (dist < minDist && dist > 0.0001) {
+                                const nx = dx / dist;
+                                const ny = dy / dist;
+                                const overlap = minDist - dist;
+
+                                ball.x += nx * overlap * 0.8;
+                                ball.y += ny * overlap * 0.8;
+
+                                const vn = ball.vx * nx + ball.vy * ny;
+
+                                if (vn < 0) {
+                                    const jn = -(1 + restitution) * vn;
+                                    ball.vx += jn * nx;
+                                    ball.vy += jn * ny;
+
+                                    const rx = ball.x - pin.x;
+                                    const ry = ball.y - pin.y;
+                                    const torque = rx * ball.vy - ry * ball.vx;
+                                    ball.angularVelocity += torque * 0.0008 * speed;
+
+                                    const tx = -ny;
+                                    const ty = nx;
+                                    const vt = ball.vx * tx + ball.vy * ty;
+                                    const frictionImpulse = -vt * 0.15 * speed;
+                                    ball.vx += frictionImpulse * tx;
+                                    ball.vy += frictionImpulse * ty;
+                                }
+                            }
+                        }
+
+                        if (ball.x - ball.radius < wallLeft) {
+                            ball.x = wallLeft + ball.radius;
+                            if (ball.vx < 0) ball.vx = -ball.vx * wallRestitution;
+                            if (CONFIG.wallFriction) {
+                                ball.angularVelocity += ball.vy * 0.005 * speed;
+                                ball.vy *= 0.98;
+                            }
+                        }
+                        if (ball.x + ball.radius > wallRight) {
+                            ball.x = wallRight - ball.radius;
+                            if (ball.vx > 0) ball.vx = -ball.vx * wallRestitution;
+                            if (CONFIG.wallFriction) {
+                                ball.angularVelocity -= ball.vy * 0.005 * speed;
+                                ball.vy *= 0.98;
+                            }
+                        }
+
+                        if (ball.y - ball.radius < MARGIN.top - 5) {
+                            ball.y = MARGIN.top - 5 + ball.radius;
+                            if (ball.vy < 0) ball.vy = -ball.vy * wallRestitution;
+                        }
+
+                        if (ball.y + ball.radius > floorY) {
+                            ball.y = floorY - ball.radius;
+                            if (ball.vy > 0) {
+                                ball.vy = -ball.vy * wallRestitution * 0.3;
+                            }
+                            ball.vx *= Math.pow(0.92, speed * 0.5);
+                            ball.angularVelocity *= Math.pow(0.90, speed * 0.5);
+
+                            ball.onFloor = true;
+                            ball.onFloorTimer += 0.016;
+
+                            if (ball.onFloorTimer >= removalTime) {
+                                this.updateBallBin(ball);
+                                this.totalCounted++;
+                                ball.removed = true;
+                                ball.active = false;
+                            }
+                        } else {
+                            ball.onFloor = false;
+                            ball.onFloorTimer = 0;
+                        }
+
+                        if (CONFIG.ballCollision) {
+                            for (let j = i + 1; j < this.balls.length; j++) {
+                                const other = this.balls[j];
+                                if (!other.active || other.removed) continue;
+
+                                const dx = ball.x - other.x;
+                                const dy = ball.y - other.y;
+                                const dist = Math.sqrt(dx * dx + dy * dy);
+                                const minDist = ball.radius + other.radius;
+
+                                if (dist < minDist && dist > 0.0001) {
+                                    const nx = dx / dist;
+                                    const ny = dy / dist;
+                                    const overlap = minDist - dist;
+
+                                    const totalMass = ball.mass + other.mass;
+                                    ball.x += nx * overlap * (other.mass / totalMass);
+                                    ball.y += ny * overlap * (other.mass / totalMass);
+                                    other.x -= nx * overlap * (ball.mass / totalMass);
+                                    other.y -= ny * overlap * (ball.mass / totalMass);
+
+                                    const dvx = ball.vx - other.vx;
+                                    const dvy = ball.vy - other.vy;
+                                    const vn = dvx * nx + dvy * ny;
+
+                                    if (vn < 0) {
+                                        const e = 0.45;
+                                        const jn = -(1 + e) * vn / (1 / ball.mass + 1 / other.mass);
+                                        ball.vx += jn * nx / ball.mass;
+                                        ball.vy += jn * ny / ball.mass;
+                                        other.vx -= jn * nx / other.mass;
+                                        other.vy -= jn * ny / other.mass;
+                                    }
+                                }
+                            }
+                        }
+
+                        ball.applyRollingFriction(friction, speed);
+                    }
+                }
+
+                for (const ball of this.balls) {
+                    if (!ball.removed && ball.active) {
+                        this.updateBallBin(ball);
+                    }
+                }
+            }
+
+            updateBallBin(ball) {
+                if (ball.removed) {
+                    if (ball.binIndex >= 0 && ball.binIndex < this.bins.length) {
+                        this.bins[ball.binIndex].count = Math.max(0, this.bins[ball.binIndex].count - 1);
+                        ball.binIndex = -1;
+                    }
+                    return;
+                }
+
+                const floorY = H - MARGIN.bottom + 10;
+
+                if (ball.y + ball.radius >= floorY - 5 || ball.onFloor) {
+                    let bestBin = -1;
+                    let bestDist = Infinity;
+                    for (let i = 0; i < this.bins.length; i++) {
+                        const bin = this.bins[i];
+                        const cx = bin.x + bin.width / 2;
+                        const dist = Math.abs(ball.x - cx);
+                        if (dist < bestDist) {
+                            bestDist = dist;
+                            bestBin = i;
+                        }
+                    }
+
+                    if (bestBin >= 0 && bestBin !== ball.binIndex) {
+                        if (ball.binIndex >= 0 && ball.binIndex < this.bins.length) {
+                            this.bins[ball.binIndex].count = Math.max(0, this.bins[ball.binIndex].count - 1);
+                        }
+                        ball.binIndex = bestBin;
+                        this.bins[bestBin].count++;
+                    }
+                } else {
+                    if (ball.binIndex >= 0 && ball.binIndex < this.bins.length) {
+                        this.bins[ball.binIndex].count = Math.max(0, this.bins[ball.binIndex].count - 1);
+                        ball.binIndex = -1;
+                    }
+                }
+            }
+
+            // ================================================================
+            // LOOP PRINCIPAL
+            // ================================================================
+            update(dt) {
+                if (dt > 0.05) dt = 0.05;
+                this.simulationTime += dt;
+
+                for (const ball of this.balls) {
+                    if (ball.active && !ball.removed) {
+                        ball.update(dt, CONFIG.gravity, CONFIG.drag, CONFIG.speed);
+                    }
+                }
+
+                this.resolveCollisions();
+                this.balls = this.balls.filter(b => !b.removed);
+
+                this.updateStats();
+
+                if (this.autoDrop) {
+                    this.dropTimer += dt * 1000 * CONFIG.speed;
+                    const interval = CONFIG.dropInterval / CONFIG.releaseRate;
+                    if (this.dropTimer >= interval) {
+                        this.dropTimer = 0;
+                        const dropsPerCycle = Math.max(1, Math.ceil(CONFIG.releaseRate / 10));
+                        for (let i = 0; i < dropsPerCycle; i++) {
+                            this.dropBall();
+                        }
+                    }
+                }
+            }
+
+            render() {
+                ctx.clearRect(0, 0, W, H);
+
+                ctx.fillStyle = CONFIG.bgColor;
+                ctx.fillRect(0, 0, W, H);
+
+                if (CONFIG.showGrid) {
+                    ctx.strokeStyle = 'rgba(255,255,255,0.03)';
+                    ctx.lineWidth = 1;
+                    for (let i = 0; i < W; i += 30) {
+                        ctx.beginPath();
+                        ctx.moveTo(i, 0);
+                        ctx.lineTo(i, H);
+                        ctx.stroke();
+                    }
+                    for (let i = 0; i < H; i += 30) {
+                        ctx.beginPath();
+                        ctx.moveTo(0, i);
+                        ctx.lineTo(W, i);
+                        ctx.stroke();
+                    }
+                }
+
+                const floorY = H - MARGIN.bottom + 10;
+                const wallThickness = CONFIG.wallThickness;
+                const wallLeft = MARGIN.left + wallThickness;
+                const wallRight = W - MARGIN.right - wallThickness;
+
+                ctx.fillStyle = CONFIG.floorColor;
+                ctx.shadowBlur = 20;
+                ctx.shadowColor = 'rgba(0,0,0,0.5)';
+                ctx.fillRect(wallLeft, floorY, wallRight - wallLeft, MARGIN.bottom - 10);
+                ctx.shadowBlur = 0;
+
+                const gradFloor = ctx.createLinearGradient(0, floorY, 0, floorY + 3);
+                gradFloor.addColorStop(0, 'rgba(241,196,15,0.3)');
+                gradFloor.addColorStop(1, 'rgba(241,196,15,0)');
+                ctx.fillStyle = gradFloor;
+                ctx.fillRect(wallLeft, floorY, wallRight - wallLeft, 3);
+
+                ctx.fillStyle = 'rgba(255,255,255,0.05)';
+                ctx.fillRect(wallLeft, floorY + 1, wallRight - wallLeft, 1);
+
+                ctx.fillStyle = 'rgba(255,255,255,0.1)';
+                ctx.font = '11px sans-serif';
+                ctx.textAlign = 'center';
+                ctx.fillText('⬇ CHÃO - VAZÃO CONTÍNUA ⬇', W / 2, floorY + 20);
+
+                ctx.fillStyle = 'rgba(241,196,15,0.25)';
+                ctx.font = '10px monospace';
+                ctx.textAlign = 'right';
+                ctx.fillText('Pinos: ' + this.pins.length + ' | Linhas: ' + CONFIG.rows, W - 20, floorY + 35);
+                ctx.textAlign = 'left';
+                ctx.fillText('Densidade: ' + (this.density * 1000).toFixed(2) + '/kpx² | Área: ' + Math.round(this.area) +
+                    'px²', 20, floorY + 35);
+                ctx.textAlign = 'left';
+                ctx.fillText('T remoção: ' + CONFIG.removalTime.toFixed(2) + 's', 20, floorY + 50);
+                if (CONFIG.randomPins) {
+                    ctx.fillStyle = 'rgba(241,196,15,0.4)';
+                    ctx.textAlign = 'left';
+                    ctx.fillText('🎲 Modo Aleatório ATIVO', 20, floorY + 65);
+                }
+                if (CONFIG.jitter > 0) {
+                    ctx.fillStyle = 'rgba(241,196,15,0.3)';
+                    ctx.textAlign = 'left';
+                    ctx.fillText('🔀 Jitter: ' + CONFIG.jitter.toFixed(1) + 'px', 20, floorY + 80);
+                }
+
+                if (CONFIG.showWalls) {
+                    const wallTop = MARGIN.top - 2;
+                    const wallBottom = floorY;
+
+                    ctx.fillStyle = CONFIG.wallColor;
+                    ctx.shadowBlur = 10;
+                    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+
+                    ctx.fillRect(MARGIN.left, wallTop, wallThickness, wallBottom - wallTop);
+                    ctx.fillRect(W - MARGIN.right - wallThickness, wallTop, wallThickness, wallBottom - wallTop);
+                    ctx.fillRect(MARGIN.left, wallTop - 2, W - MARGIN.left - MARGIN.right + 4, 4);
+
+                    ctx.shadowBlur = 0;
+                    ctx.fillStyle = 'rgba(255,255,255,0.05)';
+                    ctx.fillRect(MARGIN.left + 1, wallTop, 2, wallBottom - wallTop);
+                    ctx.fillRect(W - MARGIN.right - wallThickness + 1, wallTop, 2, wallBottom - wallTop);
+                }
+
+                this.renderFunnel();
+
+                const pinColor = CONFIG.pinColor;
+                for (const pin of this.pins) {
+                    if (pin.y > floorY - 10) continue;
+                    const glow = ctx.createRadialGradient(pin.x, pin.y, 1, pin.x, pin.y, pin.radius * 3.5);
+                    glow.addColorStop(0, CONFIG.pinGlow);
+                    glow.addColorStop(1, 'rgba(0,0,0,0)');
+                    ctx.fillStyle = glow;
+                    ctx.beginPath();
+                    ctx.arc(pin.x, pin.y, pin.radius * 3.5, 0, 2 * Math.PI);
+                    ctx.fill();
+
+                    const grad = ctx.createRadialGradient(
+                        pin.x - pin.radius * 0.3, pin.y - pin.radius * 0.3, 0,
+                        pin.x, pin.y, pin.radius
+                    );
+                    grad.addColorStop(0, '#8ab4e8');
+                    grad.addColorStop(0.5, pinColor);
+                    grad.addColorStop(1, '#1a2a4a');
+                    ctx.shadowBlur = 8;
+                    ctx.shadowColor = 'rgba(0,0,0,0.4)';
+                    ctx.fillStyle = grad;
+                    ctx.beginPath();
+                    ctx.arc(pin.x, pin.y, pin.radius, 0, 2 * Math.PI);
+                    ctx.fill();
+
+                    ctx.shadowBlur = 0;
+                    ctx.fillStyle = 'rgba(255,255,255,0.12)';
+                    ctx.beginPath();
+                    ctx.arc(pin.x - pin.radius * 0.25, pin.y - pin.radius * 0.25, pin.radius * 0.35, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+
+                if (CONFIG.showBars) {
+                    const maxCount = Math.max(1, ...this.bins.map(b => b.count));
+                    for (const bin of this.bins) {
+                        const x = bin.x;
+                        const y = bin.y;
+                        const w = bin.width;
+                        const h = bin.height;
+
+                        ctx.fillStyle = '#1a1a3e';
+                        ctx.fillRect(x, y, w, h);
+
+                        ctx.strokeStyle = '#2a2a5e';
+                        ctx.lineWidth = 1;
+                        ctx.strokeRect(x, y, w, h);
+
+                        const barHeight = (bin.count / maxCount) * (h - 8);
+                        if (barHeight > 1) {
+                            const grad = ctx.createLinearGradient(x, y + h, x, y + h - barHeight);
+                            grad.addColorStop(0, 'rgba(241,196,15,0.15)');
+                            grad.addColorStop(1, 'rgba(241,196,15,0.7)');
+                            ctx.fillStyle = grad;
+                            ctx.fillRect(x + 2, y + h - 4 - barHeight, w - 4, barHeight);
+                        }
+
+                        ctx.fillStyle = '#667788';
+                        ctx.font = '10px monospace';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(bin.count, x + w / 2, y + h - 3);
+                    }
+                }
+
+                const ballColor = CONFIG.ballColor;
+                const glowIntensity = CONFIG.glowIntensity;
+
+                for (const ball of this.balls) {
+                    if (!ball.active || ball.removed) continue;
+                    const r = ball.radius;
+
+                    if (CONFIG.showTrail && ball.trail.length > 1) {
+                        for (let t = 0; t < ball.trail.length - 1; t++) {
+                            const alpha = (t / ball.trail.length) * 0.3;
+                            ctx.fillStyle = ballColor + Math.floor(alpha * 60).toString(16).padStart(2, '0');
+                            const tr = r * (0.3 + 0.7 * (t / ball.trail.length));
+                            ctx.beginPath();
+                            ctx.arc(ball.trail[t].x, ball.trail[t].y, tr, 0, 2 * Math.PI);
+                            ctx.fill();
+                        }
+                    }
+
+                    ctx.shadowColor = 'rgba(0,0,0,0.4)';
+                    ctx.shadowBlur = 12;
+                    ctx.shadowOffsetX = 0;
+                    ctx.shadowOffsetY = 2;
+
+                    if (glowIntensity > 0) {
+                        const glow = ctx.createRadialGradient(ball.x, ball.y, r * 0.1, ball.x, ball.y, r * (1 + glowIntensity /
+                            20));
+                        glow.addColorStop(0, ballColor + '55');
+                        glow.addColorStop(1, 'rgba(0,0,0,0)');
+                        ctx.shadowBlur = 0;
+                        ctx.fillStyle = glow;
+                        ctx.beginPath();
+                        ctx.arc(ball.x, ball.y, r * (1 + glowIntensity / 20), 0, 2 * Math.PI);
+                        ctx.fill();
+                        ctx.shadowBlur = 12;
+                    }
+
+                    const grad = ctx.createRadialGradient(
+                        ball.x - r * 0.3, ball.y - r * 0.4, r * 0.1,
+                        ball.x, ball.y, r
+                    );
+                    grad.addColorStop(0, '#ffd700');
+                    grad.addColorStop(0.5, ballColor);
+                    grad.addColorStop(1, '#8a6d0b');
+                    ctx.fillStyle = grad;
+                    ctx.shadowColor = 'rgba(0,0,0,0.5)';
+                    ctx.shadowBlur = 15;
+                    ctx.beginPath();
+                    ctx.arc(ball.x, ball.y, r, 0, 2 * Math.PI);
+                    ctx.fill();
+
+                    ctx.shadowBlur = 0;
+                    ctx.shadowOffsetX = 0;
+                    ctx.shadowOffsetY = 0;
+                    ctx.fillStyle = 'rgba(255,255,255,0.2)';
+                    ctx.beginPath();
+                    ctx.ellipse(ball.x - r * 0.25, ball.y - r * 0.3, r * 0.3, r * 0.15, -0.5, 0, 2 * Math.PI);
+                    ctx.fill();
+
+                    ctx.strokeStyle = 'rgba(0,0,0,0.1)';
+                    ctx.lineWidth = 0.5;
+                    ctx.beginPath();
+                    ctx.arc(ball.x, ball.y, r, 0, 2 * Math.PI);
+                    ctx.stroke();
+
+                    ctx.shadowBlur = 0;
+                    ctx.shadowOffsetX = 0;
+                    ctx.shadowOffsetY = 0;
+                }
+
+                ctx.fillStyle = 'rgba(255,255,255,0.08)';
+                ctx.font = '12px monospace';
+                ctx.textAlign = 'right';
+                ctx.fillText('Total contabilizado: ' + this.totalCounted, W - 20, H - 8);
+                ctx.textAlign = 'left';
+                ctx.fillText('Bolas ativas: ' + this.balls.length, 20, H - 8);
+            }
+
+            renderFunnel() {
+                const funnelWidth = CONFIG.funnelWidth || 3 * CONFIG.ballRadius;
+                const centerX = W / 2;
+                const topY = MARGIN.top - CONFIG.ballRadius - 10;
+                const bottomY = MARGIN.top + CONFIG.funnelGap - 5;
+
+                ctx.fillStyle = CONFIG.funnelColor;
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = 'rgba(0,0,0,0.5)';
+
+                ctx.beginPath();
+                ctx.moveTo(centerX - funnelWidth * 1.2, topY);
+                ctx.lineTo(centerX + funnelWidth * 1.2, topY);
+                ctx.lineTo(centerX + funnelWidth * 0.4, bottomY);
+                ctx.lineTo(centerX - funnelWidth * 0.4, bottomY);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = 'rgba(255,255,255,0.05)';
+                ctx.beginPath();
+                ctx.moveTo(centerX - funnelWidth * 0.8, topY + 2);
+                ctx.lineTo(centerX + funnelWidth * 0.8, topY + 2);
+                ctx.lineTo(centerX + funnelWidth * 0.3, bottomY - 2);
+                ctx.lineTo(centerX - funnelWidth * 0.3, bottomY - 2);
+                ctx.closePath();
+                ctx.fill();
+
+                ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(centerX - funnelWidth * 1.2, topY);
+                ctx.lineTo(centerX - funnelWidth * 0.4, bottomY);
+                ctx.moveTo(centerX + funnelWidth * 1.2, topY);
+                ctx.lineTo(centerX + funnelWidth * 0.4, bottomY);
+                ctx.stroke();
+
+                ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                ctx.fillRect(centerX - funnelWidth * 0.4, bottomY - 1, funnelWidth * 0.8, 3);
+
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = 'rgba(255,255,255,0.12)';
+                ctx.font = '9px monospace';
+                ctx.textAlign = 'center';
+                ctx.fillText('Gap: ' + CONFIG.funnelGap + 'px', centerX, (topY + bottomY) / 2 + 4);
+
+                ctx.fillStyle = 'rgba(255,255,255,0.15)';
+                ctx.font = '10px sans-serif';
+                ctx.fillText('▼ Bico de Funil', centerX, topY - 5);
+
+                ctx.shadowBlur = 0;
+            }
+
+            updateStats() {
+                const total = this.balls.length;
+                document.getElementById('ballCount').textContent = total;
+                document.getElementById('totalCount').textContent = this.totalCounted;
+                document.getElementById('timeDisplay').textContent = this.simulationTime.toFixed(1) + 's';
+            }
+
+            loop(timestamp) {
+                const dt = Math.min((timestamp - this.lastTime) / 1000, 0.05);
+                this.lastTime = timestamp;
+
+                this.frameCount++;
+                if (timestamp - this.fpsTime > 1000) {
+                    this.fps = this.frameCount;
+                    this.frameCount = 0;
+                    this.fpsTime = timestamp;
+                    document.getElementById('fpsDisplay').textContent = this.fps;
+                }
+
+                this.update(dt);
+                this.render();
+                requestAnimationFrame(this.loop);
+            }
+
+            // ================================================================
+            // MÉTODOS PÚBLICOS
+            // ================================================================
+            reset() {
+                this.balls = [];
+                this.ballCounter = 0;
+                this.totalCounted = 0;
+                this.simulationTime = 0;
+                this.autoDrop = false;
+                document.getElementById('autoDropBtn').textContent = '▶ Automático';
+                this.dropTimer = 0;
+                for (const bin of this.bins) bin.count = 0;
+                this.updateStats();
+            }
+
+            toggleAutoDrop() {
+                this.autoDrop = !this.autoDrop;
+                document.getElementById('autoDropBtn').textContent = this.autoDrop ? '⏸ Pausar' : '▶ Automático';
+                if (this.autoDrop) this.dropTimer = 0;
+            }
+
+            exportData() {
+                const data = {
+                    totalBallsDropped: this.ballCounter,
+                    totalCounted: this.totalCounted,
+                    activeBalls: this.balls.length,
+                    bins: this.bins.map(b => ({ index: b.index, count: b.count })),
+                    pinCount: this.pins.length,
+                    rows: CONFIG.rows,
+                    density: this.density,
+                    area: this.area,
+                    randomPins: CONFIG.randomPins,
+                    jitter: CONFIG.jitter,
+                    config: { ...CONFIG },
+                    simulationTime: this.simulationTime
+                };
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'galton_data.json';
+                a.click();
+                URL.revokeObjectURL(url);
+            }
+
+            screenshot() {
+                const link = document.createElement('a');
+                link.download = 'galton_screenshot.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            }
+        }
+
+        /**
+         * ======================================================================
+         * INICIALIZAÇÃO
+         * ======================================================================
+         */
+        let board;
+
+        function init() {
+            board = new GaltonBoard();
+
+            // ---- TOGGLES ----
+            document.querySelectorAll('[data-target]').forEach(header => {
+                header.addEventListener('click', function() {
+                    const targetId = this.dataset.target;
+                    const body = document.getElementById(targetId);
+                    const icon = this.querySelector('.toggle-icon');
+                    if (body) {
+                        body.classList.toggle('hidden');
+                        if (icon) icon.classList.toggle('rotated');
+                    }
+                });
+            });
+
+            // ---- FÍSICA ----
+            const physicsSliders = [
+                { id: 'speedSlider', display: 'speedValue', set: v => { CONFIG.speed = v;
+                        document.getElementById('speedValue').textContent = v.toFixed(1) + '×'; } },
+                { id: 'gravitySlider', display: 'gravityValue', set: v => { CONFIG.gravity = v; } },
+                { id: 'restitutionSlider', display: 'restitutionValue', set: v => { CONFIG.restitution = v; } },
+                { id: 'wallRestitutionSlider', display: 'wallRestitutionValue', set: v => { CONFIG.wallRestitution =
+                        v; } },
+                { id: 'frictionSlider', display: 'frictionValue', set: v => { CONFIG.rollingFriction = v; } },
+                { id: 'dragSlider', display: 'dragValue', set: v => { CONFIG.drag = v; } },
+            ];
+
+            physicsSliders.forEach(({ id, display, set }) => {
+                const input = document.getElementById(id);
+                const displayEl = document.getElementById(display);
+                input.addEventListener('input', () => {
+                    const val = parseFloat(input.value);
+                    if (id === 'speedSlider') {
+                        displayEl.textContent = val.toFixed(1) + '×';
+                    } else {
+                        displayEl.textContent = val.toFixed(input.step.includes('.') ? input.step.split('.')[
+                        1].length : 0);
+                    }
+                    set(val);
+                });
+            });
+
+            document.getElementById('ballCollisionCheck').addEventListener('change', function() {
+                CONFIG.ballCollision = this.checked;
+            });
+
+            // ---- MASSA ----
+            const massSliders = [
+                { id: 'densitySlider', display: 'densityValue', set: v => { CONFIG.density = v; } },
+                { id: 'massVariationSlider', display: 'massVariationValue', set: v => { CONFIG.massVariation = v /
+                        100; } },
+                { id: 'perturbationSlider', display: 'perturbationValue', set: v => { CONFIG.perturbation = v; } },
+                { id: 'velPerturbationSlider', display: 'velPerturbationValue', set: v => { CONFIG
+                        .velPerturbation = v; } },
+                { id: 'anglePerturbationSlider', display: 'anglePerturbationValue', set: v => { CONFIG
+                        .anglePerturbation = v;
+                        document.getElementById('anglePerturbationValue').textContent = v.toFixed(1) + '°'; } },
+                { id: 'initialSpinSlider', display: 'initialSpinValue', set: v => { CONFIG.initialSpin = v; } },
+                { id: 'spinVariationSlider', display: 'spinVariationValue', set: v => { CONFIG.spinVariation = v; } },
+            ];
+
+            massSliders.forEach(({ id, display, set }) => {
+                const input = document.getElementById(id);
+                const displayEl = document.getElementById(display);
+                input.addEventListener('input', () => {
+                    const val = parseFloat(input.value);
+                    if (id === 'massVariationSlider') {
+                        displayEl.textContent = val + '%';
+                    } else if (id === 'anglePerturbationSlider') {
+                        displayEl.textContent = val.toFixed(1) + '°';
+                    } else {
+                        displayEl.textContent = val.toFixed(input.step.includes('.') ? input.step.split('.')[
+                        1].length : 0);
+                    }
+                    set(val);
+                });
+            });
+
+            // ---- GEOMETRIA ----
+            document.getElementById('boardType').addEventListener('change', function() {
+                CONFIG.boardType = this.value;
+                board.initGeometry();
+                board.reset();
+            });
+
+            function setupSlider(id, displayId, setter, formatter) {
+                const input = document.getElementById(id);
+                const display = document.getElementById(displayId);
+                input.addEventListener('input', function() {
+                    const val = parseFloat(this.value);
+                    if (formatter) {
+                        display.textContent = formatter(val);
+                    } else {
+                        display.textContent = val;
+                    }
+                    setter(val);
+                });
+                input.dispatchEvent(new Event('input'));
+            }
+
+            setupSlider('ballRadiusSlider', 'ballRadiusValue',
+                (v) => { CONFIG.ballRadius = v; },
+                (v) => v.toFixed(1)
+            );
+
+            setupSlider('pinRadiusSlider', 'pinRadiusValue',
+                (v) => { CONFIG.pinRadius = v;
+                    board.initGeometry(); },
+                (v) => v.toFixed(1)
+            );
+
+            setupSlider('rowsSlider', 'rowsValue',
+                (v) => { CONFIG.rows = Math.round(v);
+                    board.initGeometry(); },
+                (v) => v
+            );
+
+            setupSlider('colsSlider', 'colsValue',
+                (v) => { CONFIG.cols = Math.round(v);
+                    board.initGeometry(); },
+                (v) => v
+            );
+
+            setupSlider('binCountSlider', 'binCountValue',
+                (v) => { CONFIG.targetBins = Math.round(v);
+                    board.initGeometry(); },
+                (v) => v
+            );
+
+            document.getElementById('randomPinsCheck').addEventListener('change', function() {
+                CONFIG.randomPins = this.checked;
+                board.initGeometry();
+                board.reset();
+            });
+
+            setupSlider('jitterSlider', 'jitterValue',
+                (v) => { CONFIG.jitter = v;
+                    board.initGeometry(); },
+                (v) => v.toFixed(1)
+            );
+
+            setupSlider('funnelGapSlider', 'funnelGapValue',
+                (v) => { CONFIG.funnelGap = v;
+                    board.initGeometry(); },
+                (v) => v
+            );
+
+            setupSlider('floorHeightSlider', 'floorHeightValue',
+                (v) => { CONFIG.floorHeight = v;
+                    board.initGeometry(); },
+                (v) => v
+            );
+
+            setupSlider('marginSideSlider', 'marginSideValue',
+                (v) => { CONFIG.marginSide = v;
+                    board.initGeometry(); },
+                (v) => v
+            );
+
+            // ---- SOLTURA E REMOÇÃO ----
+            setupSlider('dropIntervalSlider', 'dropIntervalValue',
+                (v) => { CONFIG.dropInterval = v; },
+                (v) => v
+            );
+
+            setupSlider('maxBallsSlider', 'maxBallsValue',
+                (v) => { CONFIG.maxBalls = v; },
+                (v) => v
+            );
+
+            setupSlider('releaseRateSlider', 'releaseRateValue',
+                (v) => { CONFIG.releaseRate = v; },
+                (v) => v
+            );
+
+            setupSlider('removalTimeSlider', 'removalTimeValue',
+                (v) => { CONFIG.removalTime = v; },
+                (v) => v.toFixed(2) + 's'
+            );
+
+            // Botões
+            document.getElementById('dropBtn').addEventListener('click', () => board.dropBall());
+            document.getElementById('dropBatchBtn').addEventListener('click', () => {
+                for (let i = 0; i < 10; i++) setTimeout(() => board.dropBall(), i * 20);
+            });
+            document.getElementById('dropBatch50Btn').addEventListener('click', () => {
+                for (let i = 0; i < 50; i++) setTimeout(() => board.dropBall(), i * 10);
+            });
+            document.getElementById('autoDropBtn').addEventListener('click', () => board.toggleAutoDrop());
+            document.getElementById('resetBtn').addEventListener('click', () => board.reset());
+
+            // ---- VISUAL ----
+            document.getElementById('ballColor').addEventListener('input', function() {
+                CONFIG.ballColor = this.value;
+            });
+            document.getElementById('pinColor').addEventListener('input', function() {
+                CONFIG.pinColor = this.value;
+                CONFIG.pinGlow = this.value + '33';
+            });
+            document.getElementById('bgColor').addEventListener('input', function() {
+                CONFIG.bgColor = this.value;
+            });
+            document.getElementById('funnelColor').addEventListener('input', function() {
+                CONFIG.funnelColor = this.value;
+            });
+            document.getElementById('floorColor').addEventListener('input', function() {
+                CONFIG.floorColor = this.value;
+            });
+            document.getElementById('wallColor').addEventListener('input', function() {
+                CONFIG.wallColor = this.value;
+            });
+
+            document.getElementById('glowSlider').addEventListener('input', function() {
+                CONFIG.glowIntensity = parseFloat(this.value);
+                document.getElementById('glowValue').textContent = this.value;
+            });
+
+            document.getElementById('showGrid').addEventListener('change', function() {
+                CONFIG.showGrid = this.checked;
+            });
+            document.getElementById('showTrail').addEventListener('change', function() {
+                CONFIG.showTrail = this.checked;
+            });
+            document.getElementById('showBars').addEventListener('change', function() {
+                CONFIG.showBars = this.checked;
+            });
+            document.getElementById('showWalls').addEventListener('change', function() {
+                CONFIG.showWalls = this.checked;
+            });
+            document.getElementById('wallFriction').addEventListener('change', function() {
+                CONFIG.wallFriction = this.checked;
+            });
+
+            document.getElementById('wallThicknessSlider').addEventListener('input', function() {
+                CONFIG.wallThickness = parseFloat(this.value);
+                document.getElementById('wallThicknessValue').textContent = this.value;
+            });
+
+            document.getElementById('exportBtn').addEventListener('click', () => board.exportData());
+            document.getElementById('screenshotBtn').addEventListener('click', () => board.screenshot());
+
+            // ---- CLIQUE NO CANVAS ----
+            canvas.addEventListener('click', (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const scaleX = canvas.width / rect.width;
+                const scaleY = canvas.height / rect.height;
+                const x = (e.clientX - rect.left) * scaleX;
+                const y = (e.clientY - rect.top) * scaleY;
+                if (x > MARGIN.left && x < W - MARGIN.right &&
+                    y > MARGIN.top && y < H - MARGIN.bottom) {
+                    board.dropBall();
+                }
+            });
+
+            // ---- INICIALIZA ----
+            document.querySelectorAll('input[type="range"]').forEach(input => {
+                input.dispatchEvent(new Event('input'));
+            });
+
+            document.getElementById('controlsBody').classList.remove('hidden');
+            document.getElementById('theoryBody').classList.remove('hidden');
+            document.querySelectorAll('.control-module-body').forEach(body => {
+                body.classList.remove('hidden');
+            });
+            document.querySelectorAll('.control-module-header .toggle-icon').forEach(icon => {
+                icon.classList.add('rotated');
+            });
+        }
+
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+
+</body>
+</html>

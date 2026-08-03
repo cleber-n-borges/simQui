@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Geometria Molecular 3D com Esferas Reais (Plotly)</title>
+  <script src="https://cdn.plot.ly/plotly-2.27.0.min.js"></script>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: #0f172a;
+      color: #f8fafc;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .card {
+      background: #1e293b;
+      padding: 25px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      max-width: 720px;
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid #334155;
+    }
+
+    h2 { margin-top: 0; color: #f8fafc; font-size: 1.4rem; text-align: center; }
+    p.subtitle { color: #94a3b8; margin: 0 0 16px 0; text-align: center; font-size: 0.88rem; }
+
+    #plotly-stage {
+      width: 100%;
+      height: 380px;
+      background-color: #020617;
+      border-radius: 12px;
+      border: 1px solid #334155;
+      overflow: hidden;
+    }
+
+    .badge-geo {
+      background-color: #0369a1;
+      border: 1px solid #38bdf8;
+      color: #e0f2fe;
+      font-size: 1.1rem;
+      padding: 10px 18px;
+      border-radius: 20px;
+      margin-top: 16px;
+      font-weight: bold;
+      text-align: center;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .controls-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      width: 100%;
+      margin-top: 16px;
+    }
+
+    .box {
+      background-color: #0f172a;
+      padding: 12px;
+      border-radius: 8px;
+      border: 1px solid #334155;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .box label { font-size: 0.82rem; color: #cbd5e1; font-weight: 600; }
+    .box select {
+      background-color: #1e293b;
+      color: #f8fafc;
+      border: 1px solid #475569;
+      padding: 6px;
+      border-radius: 4px;
+      outline: none;
+    }
+
+    .info-panel {
+      margin-top: 12px;
+      padding: 12px 16px;
+      background-color: #020617;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      width: 100%;
+      box-sizing: border-box;
+      font-size: 0.88rem;
+      color: #cbd5e1;
+      line-height: 1.5;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>Geometria Molecular 3D (Esferas Volumétricas)</h2>
+    <p class="subtitle">Use o mouse para girar, dar zoom e notar o efeito de luz nas esferas</p>
+
+    <div id="plotly-stage"></div>
+
+    <div class="badge-geo" id="geo-title">
+      Tetraédrica (AX₄)
+    </div>
+
+    <div class="controls-grid">
+      <div class="box">
+        <label for="select-ligantes">Átomos Ligados (X):</label>
+        <select id="select-ligantes">
+          <option value="2">2 Átomos</option>
+          <option value="3">3 Átomos</option>
+          <option value="4" selected>4 Átomos</option>
+          <option value="5">5 Átomos</option>
+          <option value="6">6 Átomos</option>
+        </select>
+      </div>
+
+      <div class="box">
+        <label for="select-pares">Pares de Elétrons Isolados (E):</label>
+        <select id="select-pares">
+          <option value="0" selected>0 Pares Livres</option>
+          <option value="1">1 Par Livre</option>
+          <option value="2">2 Pares Livres</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="info-panel" id="info-details"></div>
+  </div>
+
+  <script>
+    const selectLigantes = document.getElementById('select-ligantes');
+    const selectPares = document.getElementById('select-pares');
+    const geoTitle = document.getElementById('geo-title');
+    const infoDetails = document.getElementById('info-details');
+
+    const bancoGeometrias = {
+      "2-0": { nome: "Linear", angulo: "180°", ex: "CO₂, BeCl₂", polaridade: "Apolar (se ligantes iguais)" },
+      "2-1": { nome: "Angular", angulo: "~120°", ex: "SO₂, O₃", polaridade: "Polar" },
+      "2-2": { nome: "Angular", angulo: "104.5°", ex: "H₂O, H₂S", polaridade: "Polar" },
+      "3-0": { nome: "Trigonal Plana", angulo: "120°", ex: "BF₃, AlCl₃", polaridade: "Apolar (se ligantes iguais)" },
+      "3-1": { nome: "Piramidal", angulo: "~107°", ex: "NH₃, PCl₃", polaridade: "Polar" },
+      "4-0": { nome: "Tetraédrica", angulo: "109.5°", ex: "CH₄, CCl₄", polaridade: "Apolar (se ligantes iguais)" },
+      "4-1": { nome: "Gangorra (Seesaw)", angulo: "< 120° e < 90°", ex: "SF₄", polaridade: "Polar" },
+      "4-2": { nome: "Quadrada Plana", angulo: "90°", ex: "XeF₄", polaridade: "Apolar" },
+      "5-0": { nome: "Bipirâmide Trigonal", angulo: "90° e 120°", ex: "PCl₅", polaridade: "Apolar" },
+      "6-0": { nome: "Octaédrica", angulo: "90°", ex: "SF₆", polaridade: "Apolar" }
+    };
+
+    function gerarCoordenadas(ligantes, pares) {
+      const totalPares = parseInt(ligantes) + parseInt(pares);
+      let posicoes = [];
+
+      if (totalPares === 2) {
+        posicoes = [[1, 0, 0], [-1, 0, 0]];
+      } else if (totalPares === 3) {
+        posicoes = [
+          [0, 1, 0],
+          [Math.cos(-Math.PI/6), Math.sin(-Math.PI/6), 0],
+          [-Math.cos(-Math.PI/6), Math.sin(-Math.PI/6), 0]
+        ];
+      } else if (totalPares === 4) {
+        posicoes = [
+          [0, 1, 0],
+          [0.94, -0.33, 0],
+          [-0.47, -0.33, 0.81],
+          [-0.47, -0.33, -0.81]
+        ];
+      } else if (totalPares === 5) {
+        posicoes = [
+          [0, 1, 0], [0, -1, 0],
+          [1, 0, 0], [-0.5, 0, 0.866], [-0.5, 0, -0.866]
+        ];
+      } else if (totalPares === 6) {
+        posicoes = [
+          [0, 1, 0], [0, -1, 0],
+          [1, 0, 0], [-1, 0, 0],
+          [0, 0, 1], [0, 0, -1]
+        ];
+      }
+      return posicoes.slice(0, parseInt(ligantes));
+    }
+
+    function renderizarMol3D() {
+      const numX = selectLigantes.value;
+      const numE = selectPares.value;
+      const chave = `${numX}-${numE}`;
+
+      const info = bancoGeometrias[chave] || { 
+        nome: "Geometria Complexa / Expandida", 
+        angulo: "Varia", 
+        ex: "Compostos específicos", 
+        polaridade: "Depende" 
+      };
+
+      geoTitle.textContent = `${info.nome} (AX${numX}${numE > 0 ? 'E' + numE : ''})`;
+      infoDetails.innerHTML = `
+        • <b>Ângulo de Ligação Teórico:</b> ${info.angulo}<br>
+        • <b>Exemplos Típicos:</b> ${info.ex}<br>
+        • <b>Polaridade da Molécula:</b> ${info.polaridade}
+      `;
+
+      const coordsLigantes = gerarCoordenadas(numX, numE);
+
+      // Configuração de iluminação avançada para dar aspecto esférico real
+      const propriedadesEsferaCentral = {
+        size: 26,
+        color: '#f43f5e',
+        opacity: 1.0,
+        lighting: {
+          ambient: 0.5,
+          diffuse: 0.9,
+          specular: 0.8,
+          roughness: 0.1
+        },
+        lightposition: { x: 100, y: 200, z: 150 }
+      };
+
+      const propriedadesEsferasLigantes = {
+        size: 18,
+        color: '#38bdf8',
+        opacity: 1.0,
+        lighting: {
+          ambient: 0.5,
+          diffuse: 0.9,
+          specular: 0.8,
+          roughness: 0.1
+        },
+        lightposition: { x: 100, y: 200, z: 150 }
+      };
+
+      // 1. Átomo Central
+      const traceCentral = {
+        x: [0], y: [0], z: [0],
+        mode: 'markers',
+        type: 'scatter3d',
+        name: 'Átomo Central',
+        marker: propriedadesEsferaCentral
+      };
+
+      // 2. Átomos Ligados
+      const xLig = coordsLigantes.map(p => p[0]);
+      const yLig = coordsLigantes.map(p => p[1]);
+      const zLig = coordsLigantes.map(p => p[2]);
+
+      const traceLigantes = {
+        x: xLig, y: yLig, z: zLig,
+        mode: 'markers',
+        type: 'scatter3d',
+        name: 'Átomos Ligados',
+        marker: propriedadesEsferasLigantes
+      };
+
+      // 3. Hastes/Ligações
+      const xLinhas = [], yLinhas = [], zLinhas = [];
+      coordsLigantes.forEach(p => {
+        xLinhas.push(0, p[0], null);
+        yLinhas.push(0, p[1], null);
+        zLinhas.push(0, p[2], null);
+      });
+
+      const traceHastes = {
+        x: xLinhas, y: yLinhas, z: zLinhas,
+        mode: 'lines',
+        type: 'scatter3d',
+        name: 'Ligações',
+        line: { color: '#94a3b8', width: 8 }
+      };
+
+      const layout = {
+        margin: { l: 0, r: 0, b: 0, t: 0 },
+        paper_bgcolor: '#020617',
+        plot_bgcolor: '#020617',
+        showlegend: false,
+        scene: {
+          xaxis: { visible: false, range: [-1.6, 1.6] },
+          yaxis: { visible: false, range: [-1.6, 1.6] },
+          zaxis: { visible: false, range: [-1.6, 1.6] },
+          aspectratio: { x: 1, y: 1, z: 1 },
+          camera: {
+            eye: { x: 1.25, y: 1.25, z: 1.25 }
+          }
+        }
+      };
+
+      const config = { responsive: true, displayModeBar: false };
+
+      Plotly.react('plotly-stage', [traceHastes, traceCentral, traceLigantes], layout, config);
+    }
+
+    selectLigantes.addEventListener('change', renderizarMol3D);
+    selectPares.addEventListener('change', renderizarMol3D);
+
+    renderizarMol3D();
+  </script>
+</body>
+</html>

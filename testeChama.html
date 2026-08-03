@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Simulador: Teste de Chama (Análise Qualitativa)</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background-color: #0f172a;
+      color: #f8fafc;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .card {
+      background: #1e293b;
+      padding: 25px;
+      border-radius: 16px;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      max-width: 600px;
+      width: 100%;
+      box-sizing: border-box;
+      border: 1px solid #334155;
+    }
+
+    h2 { margin-top: 0; color: #f8fafc; font-size: 1.4rem; margin-bottom: 4px; text-align: center; }
+    p.subtitle { color: #94a3b8; margin: 0 0 12px 0; text-align: center; font-size: 0.88rem; }
+
+    /* Caixa de Informativo e Instruções */
+    .info-badge {
+      background-color: #0284c7;
+      border: 1px solid #38bdf8;
+      color: #f0f9ff;
+      font-size: 0.85rem;
+      padding: 8px 14px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      width: 100%;
+      box-sizing: border-box;
+      text-align: center;
+    }
+
+    /* Palco do Laboratório SVG */
+    .lab-stage {
+      width: 100%;
+      height: 320px;
+      background: #020617;
+      border: 1px solid #334155;
+      border-radius: 12px;
+      position: relative;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    svg {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* Painel de Controles */
+    .controls-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      width: 100%;
+      margin-top: 12px;
+    }
+
+    .control-row {
+      display: flex;
+      gap: 10px;
+      width: 100%;
+    }
+
+    label {
+      font-size: 0.85rem;
+      color: #cbd5e1;
+      margin-bottom: 4px;
+      display: block;
+    }
+
+    select {
+      width: 100%;
+      padding: 9px 12px;
+      border-radius: 8px;
+      border: 1px solid #475569;
+      background-color: #0f172a;
+      color: #f8fafc;
+      font-size: 0.9rem;
+      outline: none;
+    }
+
+    select:focus {
+      border-color: #38bdf8;
+    }
+
+    button {
+      padding: 10px 14px;
+      border: none;
+      border-radius: 8px;
+      font-weight: 600;
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      flex: 1;
+    }
+
+    .btn-flame { background-color: #f97316; color: white; }
+    .btn-flame:hover { background-color: #ea580c; }
+    
+    .btn-clean { background-color: #0284c7; color: white; }
+    .btn-clean:hover { background-color: #0369a1; }
+
+    .btn-test { background-color: #10b981; color: white; }
+    .btn-test:hover { background-color: #059669; }
+    .btn-test:disabled { background-color: #334155; color: #64748b; cursor: not-allowed; }
+
+    .btn-reset { background-color: #475569; color: #f8fafc; flex: 0.4; }
+    .btn-reset:hover { background-color: #64748b; }
+
+    /* Caixa de Status / Feedback */
+    #status {
+      font-size: 0.9rem;
+      font-weight: 500;
+      margin-top: 12px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      color: #e2e8f0;
+      background-color: #0f172a;
+      border: 1px solid #334155;
+      width: 100%;
+      box-sizing: border-box;
+      text-align: center;
+      min-height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1.3;
+    }
+
+    #status.success { border-color: #10b981; background-color: #064e3b; color: #a7f3d0; }
+    #status.warning { border-color: #f59e0b; background-color: #451a03; color: #fde68a; }
+  </style>
+</head>
+<body>
+
+  <div class="card">
+    <h2>Teste de Chama (Análise Qualitativa)</h2>
+    <p class="subtitle">Excitação atômica e identificação de cátions por espectro visível</p>
+    
+    <div class="info-badge">
+      🧪 <b>Procedimento:</b> Regule o ar do bico $\rightarrow$ Limpe a alça no $\text{HCl}$ $\rightarrow$ Selecione o Sal $\rightarrow$ Leve à Chama.
+    </div>
+
+    <div class="lab-stage">
+      <svg id="svg-lab" viewBox="0 0 400 300">
+        <!-- Bancada -->
+        <rect x="0" y="270" width="400" height="30" fill="#1e293b" />
+        <rect x="0" y="270" width="400" height="3" fill="#475569" />
+
+        <!-- Frasco com Sal Escolhido -->
+        <g transform="translate(40, 190)">
+          <rect x="0" y="20" width="45" height="60" rx="4" fill="rgba(255,255,255,0.15)" stroke="#94a3b8" stroke-width="1.5"/>
+          <rect x="5" y="40" width="35" height="37" rx="2" id="svg-sal-cor" fill="#ffffff" />
+          <rect x="12" y="10" width="21" height="10" fill="#64748b"/>
+          <text x="22" y="55" font-size="9" fill="#0f172a" font-weight="bold" text-anchor="middle" id="svg-sal-rotulo">NaCl</text>
+        </g>
+
+        <!-- Bequer de HCl (Limpeza) -->
+        <g transform="translate(110, 210)">
+          <rect x="0" y="10" width="35" height="50" rx="2" fill="rgba(224, 242, 254, 0.2)" stroke="#38bdf8" stroke-width="1.5"/>
+          <rect x="2" y="25" width="31" height="33" fill="rgba(56, 189, 248, 0.3)"/>
+          <text x="17" y="45" font-size="8" fill="#e0f2fe" font-weight="bold" text-anchor="middle">HCl conc.</text>
+        </g>
+
+        <!-- Bico de Bunsen -->
+        <g transform="translate(230, 170)">
+          <!-- Base -->
+          <rect x="10" y="90" width="50" height="10" rx="3" fill="#64748b" />
+          <rect x="20" y="80" width="30" height="10" fill="#475569" />
+          <!-- Tubo Vertical -->
+          <rect x="30" y="20" width="10" height="60" fill="#94a3b8" />
+          <!-- Anel de Regulagem de Ar -->
+          <circle id="anel-ar" cx="35" cy="70" r="7" fill="#f59e0b" stroke="#78350f" stroke-width="1"/>
+          
+          <!-- Chama (Sobreposta com gradiente/opacidade) -->
+          <g id="chama-grupo" opacity="0">
+            <!-- Chama Amarela (Fria) -->
+            <path id="chama-amarela" d="M 35 20 C 20 -10, 20 -20, 35 -40 C 50 -20, 50 -10, 35 20 Z" fill="#ffb703" opacity="0.9" />
+            
+            <!-- Chama Azul (Oxidante - Ideal) -->
+            <path id="chama-azul-externa" d="M 35 20 C 22 -5, 22 -15, 35 -35 C 48 -15, 48 -5, 35 20 Z" fill="#0284c7" opacity="0.8" />
+            <path id="chama-azul-interna" d="M 35 20 C 28 5, 28 0, 35 -15 C 42 0, 42 5, 35 20 Z" fill="#38bdf8" opacity="0.9" />
+            
+            <!-- Brilho de Emissão Atômica do Sal -->
+            <path id="chama-espectro" d="M 35 20 C 15 -15, 15 -25, 35 -45 C 55 -25, 55 -15, 35 20 Z" fill="#ffffff" opacity="0" />
+            <circle id="brilho-foco" cx="35" cy="-10" r="25" fill="#ffffff" opacity="0" filter="blur(5px)" />
+          </g>
+        </g>
+
+        <!-- Haste com Alça de Platina -->
+        <g id="alca-platina" transform="translate(0, 0)">
+          <!-- Cabo -->
+          <rect x="300" y="110" width="80" height="6" rx="3" fill="#b91c1c" />
+          <!-- Haste de Metal -->
+          <line x1="180" y1="113" x2="300" y2="113" stroke="#cbd5e1" stroke-width="2" />
+          <!-- Anel/Alça na Ponta -->
+          <circle id="alca-pont" cx="177" cy="113" r="4" fill="none" stroke="#cbd5e1" stroke-width="2" />
+          <!-- Impregnação de Sal na Alça -->
+          <circle id="alca-sal" cx="177" cy="113" r="3" fill="#ffffff" opacity="0" />
+        </g>
+      </svg>
+    </div>
+
+    <!-- Controles -->
+    <div class="controls-panel">
+      <div>
+        <label for="select-sal">Escolha o Sal Inorgânico (Cátion):</label>
+        <select id="select-sal">
+          <option value="NaCl">Cloreto de Sódio (NaCl) — [Na+]</option>
+          <option value="KCl">Cloreto de Potássio (KCl) — [K+]</option>
+          <option value="CaCl2">Cloreto de Cálcio (CaCl2) — [Ca2+]</option>
+          <option value="SrCl2">Cloreto de Estrôncio (SrCl2) — [Sr2+]</option>
+          <option value="CuCl2">Cloreto de Cobre II (CuCl2) — [Cu2+]</option>
+          <option value="UNK">❓ Amostra Desconhecida (Desafio)</option>
+        </select>
+      </div>
+
+      <div class="control-row">
+        <button id="btn-ar" class="btn-flame">🔥 Abrir Entrada de Ar</button>
+        <button id="btn-limpar" class="btn-clean">🧪 Limpar Alça (HCl)</button>
+      </div>
+
+      <div class="control-row">
+        <button id="btn-pegar-sal" class="btn-clean" disabled>🥄 Pegar Sal na Alça</button>
+        <button id="btn-testar" class="btn-test" disabled>✨ Testar na Chama</button>
+        <button id="btn-reset" class="btn-reset">🔄</button>
+      </div>
+    </div>
+
+    <div id="status">Ligue o Bico de Bunsen e abra a entrada de ar para obter a chama azul oxidante ideal.</div>
+  </div>
+
+  <script>
+    // Banco de Dados dos Cátions e Cores
+    const DADOS_SAIS = {
+      'NaCl':  { cation: 'Sódio (Na⁺)', corNome: 'Amarelo Alaranjado Intenso', hex: '#ffb703', formula: 'NaCl' },
+      'KCl':   { cation: 'Potássio (K⁺)', corNome: 'Violeta / Lilás Suave', hex: '#c084fc', formula: 'KCl' },
+      'CaCl2': { cation: 'Cálcio (Ca²⁺)', corNome: 'Vermelho-Tijolo / Laranja', hex: '#ff4500', formula: 'CaCl₂' },
+      'SrCl2': { cation: 'Estrôncio (Sr²⁺)', corNome: 'Vermelho Carmim Vivo', hex: '#dc2626', formula: 'SrCl₂' },
+      'CuCl2': { cation: 'Cobre II (Cu²⁺)', corNome: 'Verde Esmeralda / Azulado', hex: '#10b981', formula: 'CuCl₂' }
+    };
+
+    // Estado da Aplicação
+    let entradaArAberta = false;
+    let alcaLimpa = false;
+    let alcaComSal = false;
+    let salNaAlcaChave = null;
+    let amostraDesconhecidaChave = null;
+
+    // Elementos DOM e SVG
+    const selectSal = document.getElementById('select-sal');
+    const btnAr = document.getElementById('btn-ar');
+    const btnLimpar = document.getElementById('btn-limpar');
+    const btnPegarSal = document.getElementById('btn-pegar-sal');
+    const btnTestar = document.getElementById('btn-testar');
+    const btnReset = document.getElementById('btn-reset');
+    const elStatus = document.getElementById('status');
+
+    // Elementos SVG
+    const chamaGrupo = document.getElementById('chama-grupo');
+    const chamaAmarela = document.getElementById('chama-amarela');
+    const chamaAzulExterna = document.getElementById('chama-azul-externa');
+    const chamaAzulInterna = document.getElementById('chama-azul-interna');
+    const chamaEspectro = document.getElementById('chama-espectro');
+    const brilhoFoco = document.getElementById('brilho-foco');
+    const anelAr = document.getElementById('anel-ar');
+    
+    const alcaPlatina = document.getElementById('alca-platina');
+    const alcaSal = document.getElementById('alca-sal');
+    const svgSalRotulo = document.getElementById('svg-sal-rotulo');
+    const svgSalCor = document.getElementById('svg-sal-cor');
+
+    // Inicialização da Chama
+    chamaGrupo.setAttribute('opacity', '1');
+    atualizarChama();
+
+    // Troca do Sal Selecionado no Select
+    selectSal.addEventListener('change', () => {
+      const val = selectSal.value;
+      if (val === 'UNK') {
+        const chaves = Object.keys(DADOS_SAIS);
+        amostraDesconhecidaChave = chaves[Math.floor(Math.random() * chaves.length)];
+        svgSalRotulo.textContent = '???';
+        svgSalCor.setAttribute('fill', '#e2e8f0');
+      } else {
+        amostraDesconhecidaChave = null;
+        svgSalRotulo.textContent = DADOS_SAIS[val].formula;
+        svgSalCor.setAttribute('fill', '#ffffff');
+      }
+      
+      if (alcaComSal) {
+        // Se trocou o sal com sal na alça, invalida o teste até limpar
+        alcaComSal = false;
+        alcaSal.setAttribute('opacity', '0');
+        atualizarBotoes();
+      }
+    });
+
+    // Regulagem do Ar do Bico de Bunsen
+    btnAr.addEventListener('click', () => {
+      entradaArAberta = !entradaArAberta;
+      atualizarChama();
+
+      if (entradaArAberta) {
+        btnAr.textContent = '💨 Fechar Entrada de Ar';
+        btnAr.style.backgroundColor = '#0284c7';
+        elStatus.textContent = 'Chama azul oxidante (não luminosa) ativada! É a chama ideal pois não interfere na cor do ensaio.';
+      } else {
+        btnAr.textContent = '🔥 Abrir Entrada de Ar';
+        btnAr.style.backgroundColor = '#f97316';
+        elStatus.textContent = 'Chama amarela fuliginosa (fria). Abra a entrada de ar para realizar o ensaio com precisão.';
+      }
+      atualizarBotoes();
+    });
+
+    function atualizarChama() {
+      if (entradaArAberta) {
+        chamaAmarela.setAttribute('opacity', '0');
+        chamaAzulExterna.setAttribute('opacity', '0.85');
+        chamaAzulInterna.setAttribute('opacity', '0.9');
+        anelAr.setAttribute('fill', '#38bdf8');
+      } else {
+        chamaAmarela.setAttribute('opacity', '0.9');
+        chamaAzulExterna.setAttribute('opacity', '0');
+        chamaAzulInterna.setAttribute('opacity', '0');
+        anelAr.setAttribute('fill', '#f59e0b');
+      }
+    }
+
+    // 1. Limpeza da Alça no HCl
+    btnLimpar.addEventListener('click', () => {
+      // Animação de Mergulhar no Bequer
+      alcaPlatina.style.transition = 'transform 0.6s ease-in-out';
+      alcaPlatina.setAttribute('transform', 'translate(-50, 110)');
+
+      setTimeout(() => {
+        // Leva à chama para queimar resíduos
+        alcaPlatina.setAttribute('transform', 'translate(88, 10)');
+        
+        setTimeout(() => {
+          // Retorna à posição inicial
+          alcaPlatina.setAttribute('transform', 'translate(0, 0)');
+          alcaLimpa = true;
+          alcaComSal = false;
+          alcaSal.setAttribute('opacity', '0');
+          
+          elStatus.textContent = 'Alça descontaminada no HCl concentrado e calcinada na chama. Pronta para recolher o sal!';
+          elStatus.className = 'success';
+          atualizarBotoes();
+        }, 800);
+      }, 700);
+    });
+
+    // 2. Pegar o Sal
+    btnPegarSal.addEventListener('click', () => {
+      if (!alcaLimpa) {
+        elStatus.textContent = '⚠️ Recomenda-se limpar a alça com HCl primeiro para evitar contaminação cruzada.';
+        elStatus.className = 'warning';
+        return;
+      }
+
+      // Determina o sal ativo
+      salNaAlcaChave = selectSal.value === 'UNK' ? amostraDesconhecidaChave : selectSal.value;
+
+      // Animação de ir até o frasco de sal
+      alcaPlatina.style.transition = 'transform 0.6s ease-in-out';
+      alcaPlatina.setAttribute('transform', 'translate(-115, 115)');
+
+      setTimeout(() => {
+        alcaComSal = true;
+        alcaSal.setAttribute('opacity', '1');
+        alcaSal.setAttribute('fill', DADOS_SAIS[salNaAlcaChave].hex);
+        
+        // Retorna
+        alcaPlatina.setAttribute('transform', 'translate(0, 0)');
+        elStatus.textContent = 'Sal impregnado na alça de platina. Agora clique em "Testar na Chama".';
+        elStatus.className = '';
+        atualizarBotoes();
+      }, 700);
+    });
+
+    // 3. Testar na Chama (Emissão Atômica)
+    btnTestar.addEventListener('click', () => {
+      if (!entradaArAberta) {
+        elStatus.textContent = '⚠️ A chama amarela mascarará a cor do teste! Abra a entrada de ar primeiro.';
+        elStatus.className = 'warning';
+        return;
+      }
+
+      const dados = DADOS_SAIS[salNaAlcaChave];
+
+      // Mover Alça até o Bico de Bunsen (Zona de fusão/chama)
+      alcaPlatina.style.transition = 'transform 0.7s cubic-bezier(0.4, 0, 0.2, 1)';
+      alcaPlatina.setAttribute('transform', 'translate(88, 10)');
+
+      setTimeout(() => {
+        // Exibir emissão atômica em cores
+        chamaEspectro.setAttribute('fill', dados.hex);
+        chamaEspectro.style.transition = 'opacity 0.4s ease';
+        chamaEspectro.setAttribute('opacity', '0.9');
+
+        brilhoFoco.setAttribute('fill', dados.hex);
+        brilhoFoco.style.transition = 'opacity 0.4s ease';
+        brilhoFoco.setAttribute('opacity', '0.6');
+
+        if (selectSal.value === 'UNK') {
+          elStatus.innerHTML = `✨ <b>Chama Emitida:</b> Cor ${dados.corNome}.<br>Qual é o íon metálico presente? (Consulte a tabela comparativa).`;
+        } else {
+          elStatus.innerHTML = `✨ <b>Resultado:</b> Cátion <b>${dados.cation}</b> gerou chama de cor <b>${dados.corNome}</b>!`;
+        }
+        elStatus.className = 'success';
+
+        // Apagar o sal da alça após volatilizar/queimar
+        setTimeout(() => {
+          alcaSal.setAttribute('opacity', '0');
+          alcaComSal = false;
+        }, 1200);
+
+        // Retornar alça e apagar brilho da chama após um tempo
+        setTimeout(() => {
+          chamaEspectro.setAttribute('opacity', '0');
+          brilhoFoco.setAttribute('opacity', '0');
+          alcaPlatina.setAttribute('transform', 'translate(0, 0)');
+          atualizarBotoes();
+        }, 3000);
+
+      }, 750);
+    });
+
+    function atualizarBotoes() {
+      btnPegarSal.disabled = !alcaLimpa;
+      btnTestar.disabled = !alcaComSal || !entradaArAberta;
+    }
+
+    // Reiniciar Simulador
+    btnReset.addEventListener('click', () => {
+      entradaArAberta = false;
+      alcaLimpa = false;
+      alcaComSal = false;
+      salNaAlcaChave = null;
+      amostraDesconhecidaChave = null;
+
+      selectSal.value = 'NaCl';
+      svgSalRotulo.textContent = 'NaCl';
+      svgSalCor.setAttribute('fill', '#ffffff');
+
+      atualizarChama();
+      btnAr.textContent = '🔥 Abrir Entrada de Ar';
+      btnAr.style.backgroundColor = '#f97316';
+
+      alcaPlatina.style.transition = 'none';
+      alcaPlatina.setAttribute('transform', 'translate(0, 0)');
+      alcaSal.setAttribute('opacity', '0');
+      chamaEspectro.setAttribute('opacity', '0');
+      brilhoFoco.setAttribute('opacity', '0');
+
+      elStatus.textContent = 'Simulador reiniciado. Ajuste a entrada de ar do Bico de Bunsen.';
+      elStatus.className = '';
+      atualizarBotoes();
+    });
+  </script>
+</body>
+</html>

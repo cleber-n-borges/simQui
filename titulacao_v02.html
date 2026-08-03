@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Titulação HCl x KOH - Simulador Interativo</title>
+    
+    <!-- Carregando Plotly.js de CDN super estável -->
+    <script src="https://unpkg.com/plotly.js-dist-min@2.27.0/plotly.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #f4f6f9;
+            --card-bg: #ffffff;
+            --primary: #3498db;
+            --danger: #e74c3c;
+            --success: #2ecc71;
+            --warning: #f1c40f;
+            --text: #2c3e50;
+        }
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+        }
+        h1 { text-align: center; color: var(--text); margin-bottom: 5px; }
+        p.subtitle { text-align: center; color: #7f8c8d; margin-top: 0; margin-bottom: 25px; }
+
+        .container {
+            display: grid;
+            grid-template-columns: 360px 1fr;
+            gap: 20px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        @media (max-width: 900px) {
+            .container { grid-template-columns: 1fr; }
+        }
+
+        .controls {
+            background: var(--card-bg);
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+        .control-group {
+            background: #f8f9fa;
+            padding: 12px 15px;
+            border-radius: 10px;
+            border-left: 5px solid var(--primary);
+        }
+        label { display: block; font-size: 0.85em; color: #555; margin-bottom: 5px; font-weight: bold; }
+        
+        .input-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 0.9em;
+        }
+        input[type="number"] {
+            width: 75px;
+            padding: 6px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .unit { font-weight: bold; color: #666; font-size: 0.85em; }
+
+        .btn-group { display: flex; gap: 8px; }
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        #btn-add-drop { background-color: #e67e22; color: white; }
+        #btn-add-ml { background-color: var(--primary); color: white; }
+        #btn-auto { background-color: var(--success); color: white; width: 100%; margin-top: 5px; }
+        #btn-reset { background-color: var(--danger); color: white; width: 100%; }
+
+        button:hover { opacity: 0.9; transform: translateY(-1px); }
+        button:disabled { background-color: #bdc3c7; cursor: not-allowed; transform: none; }
+
+        .dashboard-info {
+            background: #edf2f7;
+            padding: 12px;
+            border-radius: 8px;
+            font-size: 0.9em;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .tips {
+            font-size: 0.82em;
+            background: #fff3cd;
+            color: #856404;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #ffeeba;
+        }
+        
+        .plot-container {
+            background: var(--card-bg);
+            padding: 15px;
+            border-radius: 15px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            height: 600px;
+            position: relative;
+        }
+        .plot-wrapper { width: 100%; height: 100%; }
+    </style>
+</head>
+<body>
+
+    <h1>🧪 Laboratório de Titulação</h1>
+    <p class="subtitle">Simulação interativa: Ácido Forte (HCl) vs Base Forte (KOH)</p>
+
+    <div class="container">
+        <!-- Painel Lateral -->
+        <div class="controls">
+            <div style="text-align:center; font-weight:bold; color: #333;">Configuração Inicial</div>
+            
+            <!-- Ácido -->
+            <div class="control-group" style="border-left-color: #e74c3c;">
+                <label>Analito: HCl (Ácido Forte)</label>
+                <div class="input-row">
+                    <span>Vol. Inicial:</span>
+                    <div><input type="number" id="volAcido" value="50" min="5" max="200" step="5"> <span class="unit">mL</span></div>
+                </div>
+                <div class="input-row">
+                    <span>Concentração:</span>
+                    <div><input type="number" id="concAcido" value="0.10" min="0.01" max="2.0" step="0.01"> <span class="unit">mol/L</span></div>
+                </div>
+            </div>
+
+            <!-- Base -->
+            <div class="control-group" style="border-left-color: #3498db;">
+                <label>Titulante: KOH (Base Forte)</label>
+                <div class="input-row">
+                    <span>Concentração:</span>
+                    <div><input type="number" id="concBase" value="0.10" min="0.01" max="2.0" step="0.01"> <span class="unit">mol/L</span></div>
+                </div>
+                <div class="input-row">
+                    <span>Vol. Adicionado:</span>
+                    <div><input type="number" id="volBase" value="0.0" step="0.1" readonly> <span class="unit">mL</span></div>
+                </div>
+            </div>
+
+            <!-- Botões de Controle -->
+            <div class="btn-group">
+                <button id="btn-add-drop">+0.1 mL (Gota)</button>
+                <button id="btn-add-ml">+1.0 mL</button>
+            </div>
+            <button id="btn-auto">▶️ Adicionar KOH Automático</button>
+            <button id="btn-reset">↺ Reiniciar Titulação</button>
+
+            <!-- Dashboard de Leitura -->
+            <div class="dashboard-info">
+                <div><strong>pH Atual:</strong> <span id="ph-display" style="color:#2c3e50; font-weight:bold; font-size:1.1em;">1.00</span></div>
+                <div><strong>Ponto de Equivalência Teórico:</strong> <span id="volEq-display" style="color:#d35400; font-weight:bold;">50.00 mL</span></div>
+            </div>
+
+            <div class="tips">
+                💡 <strong>Dica de Leitura:</strong> Observe como o pH muda muito pouco no início e depois "explode" na região do ponto de equivalência. Passe o mouse sobre a linha para ver os valores exatos!
+            </div>
+        </div>
+
+        <!-- Área do Gráfico -->
+        <div class="plot-container">
+            <div id="myPlot" class="plot-wrapper"></div>
+        </div>
+    </div>
+
+<script>
+    // Estado do Simulador
+    let autoTimer = null;
+
+    // Elementos DOM
+    const inputVolAcido = document.getElementById('volAcido');
+    const inputConcAcido = document.getElementById('concAcido');
+    const inputVolBase = document.getElementById('volBase');
+    const inputConcBase = document.getElementById('concBase');
+    
+    const dispPh = document.getElementById('ph-display');
+    const dispStatusEq = document.getElementById('volEq-display');
+
+    const btnDrop = document.getElementById('btn-add-drop');
+    const btnMl = document.getElementById('btn-add-ml');
+    const btnAuto = document.getElementById('btn-auto');
+    const btnReset = document.getElementById('btn-reset');
+
+    // Inicialização ao carregar a página
+    window.onload = function() {
+        atualizarSimulacao();
+    };
+
+    // --- Função Química para Cálculo Exato de pH ---
+    function calcularpH(volAcido, concAcido, volBaseAdicionada, concBase) {
+        const molesAcidoInicial = (volAcido * concAcido) / 1000;
+        const molesBaseAdicionada = (volBaseAdicionada * concBase) / 1000;
+        const volumeTotalL = (volAcido + volBaseAdicionada) / 1000;
+
+        if (molesBaseAdicionada < molesAcidoInicial) {
+            // Região Ácida (Excesso de H+)
+            const molesH = molesAcidoInicial - molesBaseAdicionada;
+            const concH = molesH / volumeTotalL;
+            return -Math.log10(concH);
+        } else if (Math.abs(molesAcidoInicial - molesBaseAdicionada) < 1e-9) {
+            // Ponto de Equivalência Neutro (pH = 7)
+            return 7.00;
+        } else {
+            // Região Básica (Excesso de OH-)
+            const molesOH = molesBaseAdicionada - molesAcidoInicial;
+            const concOH = molesOH / volumeTotalL;
+            const pOH = -Math.log10(concOH);
+            return 14.0 - pOH;
+        }
+    }
+
+    // --- Função para Adicionar Volume de KOH ---
+    function adicionarKOH(quantidade) {
+        const volAcido = parseFloat(inputVolAcido.value) || 0;
+        const concAcido = parseFloat(inputConcAcido.value) || 0;
+        const concBase = parseFloat(inputConcBase.value) || 0;
+
+        const Veq = (volAcido * concAcido) / concBase;
+        const limiteMaximo = Veq * 2; // Limite de 200% do Ponto de Equivalência
+
+        let volAtual = parseFloat(inputVolBase.value) || 0;
+        let novoVol = volAtual + quantidade;
+
+        if (novoVol >= limiteMaximo) {
+            novoVol = limiteMaximo;
+            pararTitualcaoAuto();
+        }
+
+        inputVolBase.value = novoVol.toFixed(2);
+        atualizarSimulacao();
+    }
+
+    // --- Renderização do Gráfico e Atualização da Tela ---
+    function atualizarSimulacao() {
+        const volAcido = parseFloat(inputVolAcido.value) || 50;
+        const concAcido = parseFloat(inputConcAcido.value) || 0.1;
+        const concBase = parseFloat(inputConcBase.value) || 0.1;
+        const volBaseAtual = parseFloat(inputVolBase.value) || 0;
+
+        const Veq = (volAcido * concAcido) / concBase;
+        dispStatusEq.innerText = Veq.toFixed(2) + " mL";
+
+        // Gerar histórico de pontos para desenhar a curva
+        let xValores = [];
+        let yValores = [];
+        let passo = 0.2;
+
+        for (let v = 0; v <= volBaseAtual; v += passo) {
+            xValores.push(v);
+            yValores.push(calcularpH(volAcido, concAcido, v, concBase));
+        }
+
+        // Garante que o último ponto exato seja registrado
+        if (xValores[xValores.length - 1] !== volBaseAtual) {
+            xValores.push(volBaseAtual);
+            yValores.push(calcularpH(volAcido, concAcido, volBaseAtual, concBase));
+        }
+
+        const phAtual = yValores[yValores.length - 1] || calcularpH(volAcido, concAcido, 0, concBase);
+        dispPh.innerText = phAtual.toFixed(2);
+
+        // Bloquear alteração de concentração/volume inicial se a reação começou
+        const emAndamento = volBaseAtual > 0;
+        inputVolAcido.disabled = emAndamento;
+        inputConcAcido.disabled = emAndamento;
+        inputConcBase.disabled = emAndamento;
+
+        plotarGraficoPlotly(xValores, yValores, Veq, volBaseAtual);
+    }
+
+    // --- Renderização Segura do Plotly ---
+    function plotarGraficoPlotly(x, y, Veq, volBaseAtual) {
+        const traceCurva = {
+            x: x,
+            y: y,
+            mode: 'lines',
+            type: 'scatter',
+            name: 'pH da Solução',
+            line: { color: '#3498db', width: 3 }
+        };
+
+        const tracePontoAtual = {
+            x: [volBaseAtual],
+            y: [y[y.length - 1]],
+            mode: 'markers',
+            type: 'scatter',
+            name: 'Ponto Atual',
+            marker: { color: '#e74c3c', size: 10 }
+        };
+
+        const maxVolumeEixoX = Math.max(Veq * 1.5, volBaseAtual + 5);
+
+        const layout = {
+            title: { text: 'Curva de Titulação HCl vs KOH', font: { size: 16 } },
+            xaxis: {
+                title: 'Volume de KOH Adicionado (mL)',
+                range: [0, maxVolumeEixoX],
+                gridcolor: '#e9ecef'
+            },
+            yaxis: {
+                title: 'pH da Solução',
+                range: [0, 14],
+                gridcolor: '#e9ecef'
+            },
+            shapes: [
+                // Linha Guia do pH Neutro = 7.0
+                {
+                    type: 'line',
+                    x0: 0, x1: maxVolumeEixoX,
+                    y0: 7, y1: 7,
+                    line: { color: '#f1c40f', width: 1.5, dash: 'dash' }
+                },
+                // Linha Vertical do Ponto de Equivalência
+                {
+                    type: 'line',
+                    x0: Veq, x1: Veq,
+                    y0: 0, y1: 14,
+                    line: { color: '#e74c3c', width: 1.5, dash: 'dot' }
+                }
+            ],
+            showlegend: false,
+            margin: { l: 50, r: 30, t: 50, b: 50 }
+        };
+
+        if (typeof Plotly !== 'undefined') {
+            Plotly.react('myPlot', [traceCurva, tracePontoAtual], layout, { responsive: true });
+        }
+    }
+
+    // --- Controle do Botão Automático ---
+    function alternarTitualcaoAuto() {
+        if (autoTimer) {
+            pararTitualcaoAuto();
+        } else {
+            btnAuto.innerText = "⏸️ Pausar Titulação";
+            btnAuto.style.backgroundColor = "#e67e22";
+            autoTimer = setInterval(() => {
+                adicionarKOH(0.2);
+            }, 80);
+        }
+    }
+
+    function pararTitualcaoAuto() {
+        if (autoTimer) {
+            clearInterval(autoTimer);
+            autoTimer = null;
+            btnAuto.innerText = "▶️ Adicionar KOH Automático";
+            btnAuto.style.backgroundColor = "#2ecc71";
+        }
+    }
+
+    // --- Listeners dos Botões ---
+    btnDrop.addEventListener('click', () => adicionarKOH(0.1));
+    btnMl.addEventListener('click', () => adicionarKOH(1.0));
+    btnAuto.addEventListener('click', alternarTitualcaoAuto);
+
+    btnReset.addEventListener('click', () => {
+        pararTitualcaoAuto();
+        inputVolBase.value = "0.0";
+        inputVolAcido.disabled = false;
+        inputConcAcido.disabled = false;
+        inputConcBase.disabled = false;
+        atualizarSimulacao();
+    });
+
+    [inputVolAcido, inputConcAcido, inputConcBase].forEach(input => {
+        input.addEventListener('change', atualizarSimulacao);
+    });
+</script>
+</body>
+</html>
