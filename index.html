@@ -20,6 +20,33 @@
       display: flex;
       height: 100vh;
       overflow: hidden;
+      position: relative;
+    }
+
+    /* --- BOTÃO HAMBÚRGUER (MOBILE) --- */
+    .menu-toggle {
+      display: none;
+      background: transparent;
+      border: none;
+      color: #f8fafc;
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 4px;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* --- OVERLAY DE FUNDO EM TELA PEQUENA --- */
+    .sidebar-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0, 0, 0, 0.6);
+      backdrop-filter: blur(2px);
+      z-index: 19;
     }
 
     /* --- SIDEBAR DE NAVEGAÇÃO --- */
@@ -29,8 +56,10 @@
       border-right: 1px solid #1e293b;
       display: flex;
       flex-direction: column;
-      transition: all 0.3s ease;
-      z-index: 10;
+      transition: transform 0.3s ease;
+      z-index: 20;
+      height: 100%;
+      overflow-y: auto;
     }
 
     .brand {
@@ -64,7 +93,7 @@
 
     .nav-list {
       list-style: none;
-      padding: 0 8px;
+      padding: 0 8px 16px 8px;
       display: flex;
       flex-direction: column;
       gap: 4px;
@@ -119,7 +148,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding: 0 24px;
+      padding: 0 16px;
     }
 
     .module-title {
@@ -147,12 +176,41 @@
       height: calc(100vh - 60px);
       border: none;
     }
+
+    /* --- REGRAS DE ADAPTAÇÃO PARA SMARTPHONE --- */
+    @media (max-width: 768px) {
+      .menu-toggle {
+        display: flex;
+      }
+
+      .sidebar {
+        position: fixed;
+        top: 0;
+        left: 0;
+        transform: translateX(-100%);
+      }
+
+      .sidebar.open {
+        transform: translateX(0);
+      }
+
+      .sidebar-overlay.active {
+        display: block;
+      }
+
+      .status-badge {
+        display: none; /* Oculta em telas pequenas para economizar espaço */
+      }
+    }
   </style>
 </head>
 <body>
 
+  <!-- Overlay para fechar o menu ao clicar fora -->
+  <div class="sidebar-overlay" id="overlay" onclick="fecharSidebar()"></div>
+
   <!-- Menu Lateral -->
-  <aside class="sidebar">
+  <aside class="sidebar" id="sidebar">
     <div class="brand">
       <i class="ph ph-atom"></i>
       <h1>SimuQuímica Hub</h1>
@@ -183,112 +241,124 @@
           <span>Titulação Ácido-Base</span>
         </button>
       </li>
-    </ul>
 
       <!-- Item 4: Uso de Balança -->
       <li class="nav-item">
-        <button onclick="carregarModulo('balanca.html', 'Titulação & Curva de pH', this)">
-          <i class="ph ph-flask"></i>
+        <button onclick="carregarModulo('balanca.html', 'Uso de Balança', this)">
+          <i class="ph ph-scales"></i>
           <span>Uso de Balança</span>
         </button>
       </li>
-    </ul>
 
       <!-- Item 5: Uso de bureta -->
       <li class="nav-item">
-        <button onclick="carregarModulo('bureta.html', 'Titulação & Curva de pH', this)">
-          <i class="ph ph-flask"></i>
+        <button onclick="carregarModulo('bureta.html', 'Uso de Bureta', this)">
+          <i class="ph ph-test-tube"></i>
           <span>Uso de Bureta</span>
         </button>
       </li>
-    </ul>
 
       <!-- Item 6: Diluicao -->
       <li class="nav-item">
-        <button onclick="carregarModulo('diluicao.html', 'Titulação & Curva de pH', this)">
-          <i class="ph ph-flask"></i>
-          <span>Diluicao</span>
+        <button onclick="carregarModulo('diluicao.html', 'Diluição de Soluções', this)">
+          <i class="ph ph-drop"></i>
+          <span>Diluição</span>
         </button>
       </li>
-    </ul>
 
       <!-- Item 7: Equilibrio Quimico -->
       <li class="nav-item">
-        <button onclick="carregarModulo('EquiQuimico.html', 'Titulação & Curva de pH', this)">
-          <i class="ph ph-flask"></i>
-          <span>Equilibrio Quimico</span>
+        <button onclick="carregarModulo('EquiQuimico.html', 'Equilíbrio Químico', this)">
+          <i class="ph ph-arrows-left-right"></i>
+          <span>Equilíbrio Químico</span>
         </button>
       </li>
-    </ul>
 
       <!-- Item 8: Estequiometria -->
       <li class="nav-item">
-        <button onclick="carregarModulo('estequiometria.html', 'Titulação & Curva de pH', this)">
-          <i class="ph ph-flask"></i>
+        <button onclick="carregarModulo('estequiometria.html', 'Cálculos Estequiométricos', this)">
+          <i class="ph ph-calculator"></i>
           <span>Estequiometria</span>
         </button>
       </li>
-    </ul>
 
       <!-- Item 9: Lei de Boyle -->
       <li class="nav-item">
-        <button onclick="carregarModulo('leiBoyle.html', 'Titulação & Curva de pH', this)">
-          <i class="ph ph-flask"></i>
+        <button onclick="carregarModulo('leiBoyle.html', 'Lei de Boyle-Mariotte', this)">
+          <i class="ph ph-intersect"></i>
           <span>Lei de Boyle</span>
         </button>
       </li>
-    </ul>
 
-      <!-- Item 9: Menisco -->
+      <!-- Item 10: Menisco -->
       <li class="nav-item">
-        <button onclick="carregarModulo('menisco.html', 'Titulação & Curva de pH', this)">
-          <i class="ph ph-flask"></i>
+        <button onclick="carregarModulo('menisco.html', 'Leitura de Menisco', this)">
+          <i class="ph ph-eye"></i>
           <span>Menisco</span>
         </button>
       </li>
-    </ul>
 
-      <!-- Item 10: Teste de Chama -->
+      <!-- Item 11: Teste de Chama -->
       <li class="nav-item">
-        <button onclick="carregarModulo('testeChama.html', 'Titulação & Curva de pH', this)">
-          <i class="ph ph-flask"></i>
+        <button onclick="carregarModulo('testeChama.html', 'Teste de Chama', this)">
+          <i class="ph ph-flame"></i>
           <span>Teste de Chama</span>
         </button>
       </li>
     </ul>
-
   </aside>
 
   <!-- Área de Exibição -->
   <main class="main-wrapper">
     <header class="top-header">
-      <div class="module-title" id="title-display">
-        <i class="ph ph-molecule"></i>
-        <span>Geometria Molecular 3D (VSEPR)</span>
+      <div style="display: flex; align-items: center; gap: 12px;">
+        <button class="menu-toggle" onclick="alternarSidebar()" aria-label="Abrir Menu">
+          <i class="ph ph-list"></i>
+        </button>
+        <div class="module-title" id="title-display">
+          <i class="ph ph-molecule"></i>
+          <span>Geometria Molecular 3D (VSEPR)</span>
+        </div>
       </div>
       <span class="status-badge">Módulo Ativo</span>
     </header>
 
-    <!-- O iframe carrega o arquivo do módulo dinamicamente -->
-    <iframe id="content-frame" class="viewport" src="mod-geometria.html"></iframe>
+    <!-- iframe iniciando diretamente com a nova versão atualizada -->
+    <iframe id="content-frame" class="viewport" src="geometria_v02.html"></iframe>
   </main>
 
   <script>
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('overlay');
+
+    function alternarSidebar() {
+      sidebar.classList.toggle('open');
+      overlay.classList.toggle('active');
+    }
+
+    function fecharSidebar() {
+      sidebar.classList.remove('open');
+      overlay.classList.remove('active');
+    }
+
     function carregarModulo(urlArquivo, tituloModulo, elementoBotao) {
-      // 1. Atualiza o SRC do Iframe para carregar o novo módulo
+      // 1. Atualiza o SRC do Iframe
       document.getElementById('content-frame').src = urlArquivo;
 
-      // 2. Atualiza o título no cabeçalho superior
+      // 2. Atualiza o título no cabeçalho
       const iconClass = elementoBotao.querySelector('i').className;
       document.getElementById('title-display').innerHTML = `
         <i class="${iconClass}"></i>
         <span>${tituloModulo}</span>
       `;
 
-      // 3. Atualiza o estado visual ativo dos botões no menu
+      // 3. Atualiza o estado visual do botão ativo
       const itens = document.querySelectorAll('.nav-item');
       itens.forEach(item => item.classList.remove('active'));
       elementoBotao.parentElement.classList.add('active');
+
+      // 4. Recolhe o menu automaticamente no mobile
+      fecharSidebar();
     }
   </script>
 </body>
