@@ -51,7 +51,7 @@
 
     /* --- SIDEBAR DE NAVEGAÇÃO --- */
     .sidebar {
-      width: 280px;
+      width: 340px; /* Largura ampliada para acomodar melhor os textos */
       background-color: #0f172a;
       border-right: 1px solid #1e293b;
       display: flex;
@@ -187,6 +187,7 @@
         position: fixed;
         top: 0;
         left: 0;
+        max-width: 85vw;
         transform: translateX(-100%);
       }
 
@@ -218,15 +219,24 @@
 
     <div class="nav-section">Módulos Interativos</div>
     <ul class="nav-list">
-      <!-- Item 1: Geometria Molecular -->
+
+      <!-- Item 1: Visualizador Molecular 3D -->
       <li class="nav-item active">
+        <button onclick="carregarModulo('Acidos_Alimentos.html', 'Visualizador Molecular 3D', this)">
+          <i class="ph ph-atom"></i>
+          <span>Visualizador Molecular 3D</span>
+        </button>
+      </li>
+
+      <!-- Item 2: Geometria Molecular 3D -->
+      <li class="nav-item">
         <button onclick="carregarModulo('geometria_v02.html', 'Geometria Molecular 3D (VSEPR)', this)">
-          <i class="ph ph-molecule"></i>
+          <i class="ph ph-circles-three-plus"></i>
           <span>Geometria Molecular 3D</span>
         </button>
       </li>
 
-      <!-- Item 2: Lei de Charles -->
+      <!-- Item 3: Lei de Charles -->
       <li class="nav-item">
         <button onclick="carregarModulo('leiCharles.html', 'Lei de Charles (Gases Ideais)', this)">
           <i class="ph ph-gauge"></i>
@@ -234,7 +244,7 @@
         </button>
       </li>
 
-      <!-- Item 3: Titulação Ácido-Base -->
+      <!-- Item 4: Titulação Ácido-Base -->
       <li class="nav-item">
         <button onclick="carregarModulo('titulacao.html', 'Titulação & Curva de pH', this)">
           <i class="ph ph-flask"></i>
@@ -242,7 +252,7 @@
         </button>
       </li>
   
-      <!-- Item 3: Titulação Ácido-Base -->
+      <!-- Item 5: Titulação Ácido-Base (modo 2) -->
       <li class="nav-item">
         <button onclick="carregarModulo('titulacao_v02.html', 'Titulação & Curva de pH', this)">
           <i class="ph ph-flask"></i>
@@ -250,7 +260,7 @@
         </button>
       </li>
 
-      <!-- Item 4: Preparo de Solução de KOH -->
+      <!-- Item 6: Preparo de Solução de KOH -->
       <li class="nav-item">
         <button onclick="carregarModulo('Sim_Preparo_KOH.html', 'Preparo de Solução', this)">
           <i class="ph ph-flask"></i>
@@ -258,7 +268,7 @@
         </button>
       </li>
 
-      <!-- Item 4: Preparo de Solução de HCl -->
+      <!-- Item 7: Preparo de Solução de HCl -->
       <li class="nav-item">
         <button onclick="carregarModulo('Sim_Preparo_HCl.html', 'Preparo de Solução', this)">
           <i class="ph ph-flask"></i>
@@ -266,8 +276,7 @@
         </button>
       </li>
 	  
-  
-      <!-- Item 4: Uso de Balança -->
+      <!-- Item 8: Uso de Balança -->
       <li class="nav-item">
         <button onclick="carregarModulo('balanca.html', 'Uso de Balança', this)">
           <i class="ph ph-scales"></i>
@@ -275,7 +284,7 @@
         </button>
       </li>
 
-      <!-- Item 5: Uso de bureta -->
+      <!-- Item 9: Uso de Bureta -->
       <li class="nav-item">
         <button onclick="carregarModulo('bureta.html', 'Uso de Bureta', this)">
           <i class="ph ph-test-tube"></i>
@@ -283,7 +292,7 @@
         </button>
       </li>
 
-      <!-- Item 6: Diluicao -->
+      <!-- Item 10: Diluição -->
       <li class="nav-item">
         <button onclick="carregarModulo('diluicao.html', 'Diluição de Soluções', this)">
           <i class="ph ph-drop"></i>
@@ -291,7 +300,7 @@
         </button>
       </li>
 
-      <!-- Item 7: Equilibrio Quimico -->
+      <!-- Item 11: Equilíbrio Químico -->
       <li class="nav-item">
         <button onclick="carregarModulo('EquiQuimico.html', 'Equilíbrio Químico', this)">
           <i class="ph ph-arrows-left-right"></i>
@@ -299,7 +308,7 @@
         </button>
       </li>
 
-      <!-- Item 7: Equilibrio Quimico -->
+      <!-- Item 12: EQ - Cromato/Dicromato -->
       <li class="nav-item">
         <button onclick="carregarModulo('Sim_EQ_Cromato_Dicromato.html', 'EQ -Cromato/Dicromato ', this)">
           <i class="ph ph-arrows-left-right"></i>
@@ -307,7 +316,7 @@
         </button>
       </li>
 
-      <!-- Item 7: Equilibrio Quimico -->
+      <!-- Item 13: EQ - Amônia (Sistema Aberto) -->
       <li class="nav-item">
         <button onclick="carregarModulo('Sim_EQ_Amonia_Sis_Aberto.html', 'EQ - Amônia|Sistema Aberto ', this)">
           <i class="ph ph-arrows-left-right"></i>
@@ -315,11 +324,7 @@
         </button>
       </li>
 
-
-
-
-
-      <!-- Item 8: Estequiometria -->
+      <!-- Item 14: Estequiometria -->
       <li class="nav-item">
         <button onclick="carregarModulo('estequiometria.html', 'Cálculos Estequiométricos', this)">
           <i class="ph ph-calculator"></i>
@@ -327,7 +332,7 @@
         </button>
       </li>
 
-      <!-- Item 8: Estequiometria -->
+      <!-- Item 15: Estequiometria - PbI₂ -->
       <li class="nav-item">
         <button onclick="carregarModulo('Sim_EQ_PbI2.html', 'Cálculos Estequiométricos', this)">
           <i class="ph ph-calculator"></i>
@@ -335,9 +340,7 @@
         </button>
       </li>
 
-
-
-      <!-- Item 9: Lei de Boyle -->
+      <!-- Item 16: Lei de Boyle -->
       <li class="nav-item">
         <button onclick="carregarModulo('leiBoyle.html', 'Lei de Boyle-Mariotte', this)">
           <i class="ph ph-intersect"></i>
@@ -345,7 +348,7 @@
         </button>
       </li>
 
-      <!-- Item 10: Menisco -->
+      <!-- Item 17: Leitura de Menisco -->
       <li class="nav-item">
         <button onclick="carregarModulo('menisco.html', 'Leitura de Menisco', this)">
           <i class="ph ph-eye"></i>
@@ -353,7 +356,7 @@
         </button>
       </li>
 
-      <!-- Item 11: Teste de Chama -->
+      <!-- Item 18: Teste de Chama -->
       <li class="nav-item">
         <button onclick="carregarModulo('testeChama.html', 'Teste de Chama', this)">
           <i class="ph ph-flame"></i>
@@ -371,15 +374,15 @@
           <i class="ph ph-list"></i>
         </button>
         <div class="module-title" id="title-display">
-          <i class="ph ph-molecule"></i>
-          <span>Geometria Molecular 3D (VSEPR)</span>
+          <i class="ph ph-atom"></i>
+          <span>Visualizador 3D</span>
         </div>
       </div>
       <span class="status-badge">Módulo Ativo</span>
     </header>
 
     <!-- iframe iniciando diretamente com a nova versão atualizada -->
-    <iframe id="content-frame" class="viewport" src="geometria_v02.html"></iframe>
+    <iframe id="content-frame" class="viewport" src="Acidos_Alimentos.html"></iframe>
   </main>
 
   <script>
