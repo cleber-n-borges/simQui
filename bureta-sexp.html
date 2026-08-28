@@ -140,75 +140,9 @@
       font-size: 0.85rem;
     }
     .btn-new:hover { background-color: #424242; }
-
-    /* Layout lado a lado responsivo */
-    .layout-wrapper {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 24px;
-      justify-content: center;
-      align-items: flex-start;
-      width: 100%;
-      max-width: 1080px;
-    }
-    .card {
-      flex: 1 1 340px;
-    }
-    .info-card {
-      flex: 1 1 340px;
-    }
-
-    /* Bloco de texto explicativo */
-    .info-card {
-      background: white;
-      padding: 22px 28px;
-      border-radius: 16px;
-      box-shadow: 0 6px 16px rgba(0,0,0,0.08);
-      max-width: 500px;
-      width: 100%;
-      box-sizing: border-box;
-      margin-top: 6px;
-      line-height: 1.65;
-      color: #2c2c2c;
-      font-size: 0.92rem;
-    }
-    .info-card h3 {
-      margin: 0 0 12px 0;
-      font-size: 1.05rem;
-      color: #1a1a1a;
-      border-bottom: 2px solid #e0e7ef;
-      padding-bottom: 8px;
-    }
-    .info-card ol {
-      margin: 10px 0 14px 0;
-      padding-left: 20px;
-    }
-    .info-card ol li {
-      margin-bottom: 6px;
-    }
-    .info-card .destaque {
-      background: #e8f4fd;
-      border-left: 4px solid #0288d1;
-      border-radius: 0 8px 8px 0;
-      padding: 10px 14px;
-      margin: 14px 0;
-      font-size: 0.88rem;
-      color: #01579b;
-    }
-    .info-card .exemplo {
-      background: #f3f4f6;
-      border-radius: 8px;
-      padding: 10px 14px;
-      margin-top: 12px;
-      font-size: 0.88rem;
-      color: #374151;
-    }
-    .info-card .exemplo strong { color: #0288d1; }
   </style>
 </head>
 <body>
-
-  <div class="layout-wrapper">
 
   <div class="card">
     <h2>Leitura de Bureta (Efeito de Paralaxe)</h2>
@@ -421,38 +355,5 @@
 
     sortearVolume();
   </script>
-
-  <div class="info-card">
-    <h3>📋 Como fazer a leitura e anotar o volume</h3>
-
-    <p>A bureta analítica possui graduação a cada <strong>0,1 mL</strong> (décimos de mililitro).
-    A leitura correta exige que o olho esteja <strong>no mesmo nível do fundo do menisco</strong>
-    — a parte mais baixa da superfície côncava do líquido — eliminando o erro de paralaxe.</p>
-
-    <ol>
-      <li>Identifique entre quais duas marcas de <strong>0,1 mL</strong> o fundo do menisco está posicionado.</li>
-      <li>Registre os dígitos certos (lidos diretamente da escala).</li>
-      <li><strong>Estime visualmente</strong> a fração entre as duas marcas adjacentes.</li>
-      <li>Anote <strong>sempre</strong> o resultado com dois algarismos após a vírgula.</li>
-    </ol>
-
-    <div class="destaque">
-      O algarismo dos <strong>centésimos</strong> é o <strong>algarismo duvidoso</strong>: não é lido
-      diretamente da escala, mas <em>estimado</em> pela posição relativa do menisco entre as marcas.
-      Apesar de incerto, seu registro é <strong>obrigatório</strong> — omiti-lo significa perda de
-      um algarismo significativo e reduz a precisão abaixo do limite instrumental da bureta.
-    </div>
-
-    <div class="exemplo">
-      <strong>Exemplo:</strong> se o fundo do menisco estiver a ¾ da distância entre as marcas de
-      12,8 e 12,9 mL, registre <strong>12,87 mL</strong> — nunca "12,8 mL" ou "12,9 mL".
-      <br><br>
-      Toda leitura de bureta deve ter a forma <strong>XX,XX mL</strong>, com os centésimos
-      sempre presentes — estimados, porém obrigatórios.
-    </div>
-  </div>
-
-  </div><!-- /.layout-wrapper -->
-
 </body>
 </html>
