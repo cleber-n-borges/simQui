@@ -274,11 +274,20 @@
 
       eyeLine.style.top = `${yPixels}px`;
 
-      const ratio = yPixels / plotHeight;
-      yVisaoObservador = yMinData + ratio * (yMaxData - yMinData);
+      // A linha visivel (::after) fica centrada na div de 24 px, ~11 px abaixo do top CSS.
+      // O Plotly aplica margem interna de 15 px no topo antes da area de dados.
+      // Ambas as correcoes sao necessarias para o mapeamento pixel->mL ser exato.
+      const lineCenter = yPixels + 11;
+      const marginT = 15;
+      const dataHeightPx = plotHeight - 2 * marginT;
+      const ratio = (lineCenter - marginT) / dataHeightPx;
+      yVisaoObservador = yMinData + Math.max(0, Math.min(1, ratio)) * (yMaxData - yMinData);
 
-      const erroParalaxe = Math.abs(yVisaoObservador - yMeniscoReal);
-      if (erroParalaxe <= 0.05) {
+      // Alvo fisicamente correto: fundo geometrico do menisco (vertice da parabola em x=0).
+      // Equacao: yCurva = (yMeniscoReal + 0.12) - 0.333*x^2  =>  em x=0: yMeniscoReal + 0.12.
+      const yFundoMenisco_eye = yMeniscoReal + 0.12;
+      const erroParalaxe = Math.abs(yVisaoObservador - yFundoMenisco_eye);
+      if (erroParalaxe <= 0.012) {
         eyeLine.classList.add('aligned');
         eyeTag.textContent = '👁️ Visão Alinhada!';
       } else {
@@ -306,17 +315,20 @@
         return;
       }
 
-      const erroParalaxe = Math.abs(yVisaoObservador - yMeniscoReal);
+      // Leitura correta = fundo geometrico do menisco na escala: yMeniscoReal + 0.12.
+      const yFundoMenisco = parseFloat((yMeniscoReal + 0.12).toFixed(2));
+
+      const erroParalaxe = Math.abs(yVisaoObservador - yFundoMenisco);
       if (erroParalaxe > 0.08) {
         statusDiv.textContent = '⚠️ Erro de Paralaxe! Arraste a linha azul da visão até o fundo do menisco.';
         statusDiv.className = 'warning';
         return;
       }
 
-      const erroLeitura = Math.abs(respostaAluno - yMeniscoReal);
+      const erroLeitura = Math.abs(respostaAluno - yFundoMenisco);
 
       if (erroLeitura <= 0.03) {
-        statusDiv.textContent = `✓ Excelente! Leitura correta: ${yMeniscoReal.toFixed(2)} mL (Sua resposta: ${respostaAluno.toFixed(2)} mL).`;
+        statusDiv.textContent = `✓ Excelente! Leitura correta: ${yFundoMenisco.toFixed(2)} mL (Sua resposta: ${respostaAluno.toFixed(2)} mL).`;
         statusDiv.className = 'success';
       } else {
         statusDiv.textContent = `✕ Leitura incorreta. Observe o fundo do menisco e tente estimar a segunda casa decimal.`;
